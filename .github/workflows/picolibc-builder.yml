@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ENABLED_ARCHS: aarch64
+      ENABLED_ARCHS: aarch64,hexagon
       CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
       CCACHE_BASEDIR: $GITHUB_WORKSPACE/
       PICOLIBC_CONFIG_DEFAULT: ""
@@ -21,6 +21,7 @@ jobs:
       PICOLIBC_CONFIG_3: "-Dtinystdio=false"
       # io-long-double unsupported for aarch64, riscv
       PICOLIBC_CONFIG_4: "-Dtinystdio=false -Dnewlib-io-float=true -Dio-long-long=true -Dio-long-double=true -Dnewlib-fvwrite-in-streamio=true -Dsingle-thread=true -Dmb-capable=true -Dmb-extended-charsets=true"
+      PICOLIBC_FAIL_LOGS: $GITHUB_WORKSPACE/picolibc_fail_logs.txt
 
     steps:
       - name: Set up Clang 20
@@ -384,48 +385,93 @@ jobs:
       - name: Run Picolibc tests for Hexagon
         if: contains(env.ENABLED_ARCHS, 'hexagon')
         run: |
+          set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-hexagon-picolibc
           ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
         continue-on-error: true
 
       - name: Run Picolibc tests for ARM
         if: contains(env.ENABLED_ARCHS, 'arm')
         run: |
+          set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-arm-picolibc
           ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
         continue-on-error: true
 
       - name: Run Picolibc tests for AArch64, config default
         if: contains(env.ENABLED_ARCHS, 'aarch64')
         run: |
+          set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-default
           ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
         continue-on-error: true
 
       - name: Run Picolibc tests for AArch64, config-1
         if: contains(env.ENABLED_ARCHS, 'aarch64')
         run: |
+          set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-1
           ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
         continue-on-error: true
 
       - name: Run Picolibc tests for AArch64, config-2
         if: contains(env.ENABLED_ARCHS, 'aarch64')
         run: |
+          set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-2
           ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
         continue-on-error: true
 
       - name: Run Picolibc tests for AArch64, config-3
         if: contains(env.ENABLED_ARCHS, 'aarch64')
         run: |
+          set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-3
           ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
         continue-on-error: true
 
       - name: Run Picolibc tests for RISCV
         if: contains(env.ENABLED_ARCHS, 'riscv')
         run: |
+          set +e
           cd $GITHUB_WORKSPACE/picolibc/build-clang-riscv-picolibc
           ninja test
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
+          fi
         continue-on-error: true
+
+      - name: Check if all tests pass
+        run: |
+          if [ -s ${{ env.PICOLIBC_FAIL_LOGS }} ]; then
+            echo "===== TEST FAILURE LOGS ====="
+            cat ${{ env.PICOLIBC_FAIL_LOGS }}
+            exit 1
+          else
+            echo "All tests pass"
+          fi
