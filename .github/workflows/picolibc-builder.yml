@@ -1,4 +1,4 @@
-name: nightly picolibc builder (hexagon,arm32,aarch64,riscv)
+name: nightly picolibc builder
 
 on:
   # pull_request: {} # Uncomment only to test this WF file update.
@@ -8,16 +8,33 @@ on:
   workflow_dispatch:     # Allows manual triggering
 
 jobs:
-  build:
+  build-and-test:
+    name: ${{ matrix.arch.name }}
     runs-on: ubuntu-latest
-
-    env:
-      ENABLED_ARCHS: aarch64,hexagon
-      CCACHE_DIR: $GITHUB_WORKSPACE/ccache/
-      CCACHE_BASEDIR: $GITHUB_WORKSPACE/
-      PICOLIBC_FAIL_LOGS: $GITHUB_WORKSPACE/picolibc_fail_logs.txt
-      PICOLIBC_CONFIG_DEFAULT: ""
-      PICOLIBC_CONFIG_NO_TLS: "-Dthread-local-storage=false"
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - name: hexagon
+            triple: hexagon-unknown-none-elf
+            llvm-target: Hexagon
+            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
+            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
+          - name: aarch64
+            triple: aarch64-none-elf
+            llvm-target: AArch64
+            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
+            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
+#          - name: arm
+#            triple: arm-none-eabi
+#            llvm-target: ARM
+#            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
+#            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
+#          - name: riscv
+#            triple: riscv64-none-elf
+#            llvm-target: RISCV
+#            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
+#            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
 
     steps:
       - name: Set up Clang 20
@@ -29,8 +46,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev qemu-system-arm qemu-system-aarch64 qemu-system-riscv32 qemu-system-riscv64
-
+          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev 
       - name: Checkout LLVM Project
         run: |
           git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project $GITHUB_WORKSPACE/llvm-project
@@ -40,245 +56,64 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
-      - name: Configure LLVM toolchain for hexagon
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
+      - name: Configure LLVM toolchain for ${{ matrix.arch.name }}
         run: |
-          mkdir -p "$CCACHE_DIR"
-          ccache --zero-stats
-          ccache --set-config "max_size=50GB" "compression=true"
-          ccache --show-config
 
           cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DLLVM_ENABLE_PROJECTS="llvm;clang" \
-            -DLLVM_DEFAULT_TARGET_TRIPLE=hexagon-unknown-none-elf \
+            -DLLVM_DEFAULT_TARGET_TRIPLE=${{ matrix.arch.triple }} \
             -DCMAKE_C_COMPILER=`which clang` \
             -DCMAKE_CXX_COMPILER=`which clang++` \
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-            -DLLVM_TARGETS_TO_BUILD="Hexagon" \
-            -DLLVM_CCACHE_BUILD=ON \
-            -DLLVM_CCACHE_DIR=$PWD/ccache/ \
-            -DELD_TARGETS_TO_BUILD=Hexagon \
-            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-hexagon-toolchain \
+            -DLLVM_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
+            -DELD_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
+            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain \
             -S $GITHUB_WORKSPACE/llvm-project/llvm \
-            -B $GITHUB_WORKSPACE/build-hexagon-toolchain/ \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -B $GITHUB_WORKSPACE/build-${{ matrix.arch.name }}-toolchain/ \
 
-      - name: Configure LLVM toolchain for ARM
-        if: contains(env.ENABLED_ARCHS, 'arm')
+      - name: Build LLVM toolchain for ${{ matrix.arch.name }}
         run: |
-          mkdir -p "$CCACHE_DIR"
-          ccache --zero-stats
-          ccache --set-config "max_size=50GB" "compression=true"
-          ccache --show-config
+          cmake --build $GITHUB_WORKSPACE/build-${{ matrix.arch.name }}-toolchain/ -- install
 
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang" \
-            -DLLVM_DEFAULT_TARGET_TRIPLE=arm-none-eabi \
-            -DCMAKE_C_COMPILER=`which clang` \
-            -DCMAKE_CXX_COMPILER=`which clang++` \
-            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-            -DLLVM_TARGETS_TO_BUILD=ARM \
-            -DLLVM_CCACHE_BUILD=ON \
-            -DLLVM_CCACHE_DIR=$PWD/ccache/ \
-            -DELD_TARGETS_TO_BUILD=ARM \
-            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-arm-toolchain \
-            -S $GITHUB_WORKSPACE/llvm-project/llvm \
-            -B $GITHUB_WORKSPACE/build-arm-toolchain/ \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-
-      - name: Configure LLVM toolchain for AArch64
-        if: contains(env.ENABLED_ARCHS, 'aarch64')
+      - name: Build compiler-rt builtins
         run: |
-          mkdir -p "$CCACHE_DIR"
-          ccache --zero-stats
-          ccache --set-config "max_size=50GB" "compression=true"
-          ccache --show-config
-
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang" \
-            -DLLVM_DEFAULT_TARGET_TRIPLE=aarch64-none-elf \
-            -DCMAKE_C_COMPILER=`which clang` \
-            -DCMAKE_CXX_COMPILER=`which clang++` \
-            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-            -DLLVM_TARGETS_TO_BUILD=AArch64 \
-            -DLLVM_CCACHE_BUILD=ON \
-            -DLLVM_CCACHE_DIR=$PWD/ccache/ \
-            -DELD_TARGETS_TO_BUILD=AArch64 \
-            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-aarch64-toolchain \
-            -S $GITHUB_WORKSPACE/llvm-project/llvm \
-            -B $GITHUB_WORKSPACE/build-aarch64-toolchain/ \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-
-      - name: Configure LLVM toolchain for RISCV
-        if: contains(env.ENABLED_ARCHS, 'riscv')
-        run: |
-          mkdir -p "$CCACHE_DIR"
-          ccache --zero-stats
-          ccache --set-config "max_size=50GB" "compression=true"
-          ccache --show-config
-
-          cmake -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_ENABLE_PROJECTS="llvm;clang" \
-            -DLLVM_DEFAULT_TARGET_TRIPLE=riscv64-unknown-elf \
-            -DCMAKE_C_COMPILER=`which clang` \
-            -DCMAKE_CXX_COMPILER=`which clang++` \
-            -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
-            -DLLVM_TARGETS_TO_BUILD=RISCV \
-            -DLLVM_CCACHE_BUILD=ON \
-            -DLLVM_CCACHE_DIR=$PWD/ccache/ \
-            -DELD_TARGETS_TO_BUILD=RISCV \
-            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-riscv-toolchain \
-            -S $GITHUB_WORKSPACE/llvm-project/llvm \
-            -B $GITHUB_WORKSPACE/build-riscv-toolchain/ \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-
-      - name: Build LLVM toolchain for hexagon
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
-        run: |
-          cmake --build $GITHUB_WORKSPACE/build-hexagon-toolchain/ -- install
-
-      - name: Build LLVM toolchain for ARM
-        if: contains(env.ENABLED_ARCHS, 'arm')
-        run: |
-          cmake --build $GITHUB_WORKSPACE/build-arm-toolchain/ -- install
-
-      - name: Build LLVM toolchain for AArch64
-        if: contains(env.ENABLED_ARCHS, 'aarch64')
-        run: |
-          cmake --build $GITHUB_WORKSPACE/build-aarch64-toolchain/ -- install
-
-      - name: Build LLVM toolchain for RISCV
-        if: contains(env.ENABLED_ARCHS, 'riscv')
-        run: |
-          cmake --build $GITHUB_WORKSPACE/build-riscv-toolchain/ -- install
-
-      - name: Build Hexagon builtins
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
-        run: |
-          export TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-hexagon-toolchain/
+          export TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain/
           export PATH=$TOOLCHAIN_INSTALL/bin:$PATH
-          cmake -G Ninja \
-            -DCMAKE_C_COMPILER:STRING=`which clang` \
-            -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DLLVM_CMAKE_DIR:PATH=$TOOLCHAIN_INSTALL \
-            -DCMAKE_INSTALL_PREFIX:PATH=$($TOOLCHAIN_INSTALL/bin/clang -print-resource-dir) \
-            -C $GITHUB_WORKSPACE/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
-            -B $GITHUB_WORKSPACE/build-hexagon-builtins/ \
-            -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
-          cmake --build $GITHUB_WORKSPACE/build-hexagon-builtins/ -- install-builtins
-
-      - name: Build ARM builtins
-        if: contains(env.ENABLED_ARCHS, 'arm')
-        run: |
-          export TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-arm-toolchain/
-          export PATH=$TOOLCHAIN_INSTALL/bin:$PATH
-          cmake -G Ninja \
-            -DCMAKE_C_COMPILER:STRING=clang \
-            -DCMAKE_CXX_COMPILER:STRING=clang++ \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
-            -DCOMPILER_RT_BAREMETAL_BUILD=ON \
-            -DCOMPILER_RT_BUILD_BUILTINS=ON \
-            -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-            -DCOMPILER_RT_BUILD_XRAY=OFF \
-            -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-            -DCOMPILER_RT_BUILD_PROFILE=OFF \
-            -DCMAKE_C_COMPILER_TARGET=arm-none-eabi \
-            -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-            -DCMAKE_C_FLAGS="--target=arm-none-eabi -march=armv4t -ffreestanding" \
-            -DCMAKE_CXX_FLAGS="--target=arm-none-eabi -march=armv4t -ffreestanding" \
-            -DCMAKE_C_COMPILER_FORCED=ON \
-            -DCMAKE_CXX_COMPILER_FORCED=ON \
-            -DCMAKE_CROSSCOMPILING=ON \
-            -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
-            -B build-arm-builtins/ \
-            -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
-          cmake --build $GITHUB_WORKSPACE/build-arm-builtins/ -- install-builtins
-
-      - name: Build RISCV builtins
-        if: contains(env.ENABLED_ARCHS, 'riscv')
-        run: |
-          export TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-riscv-toolchain/
-          export PATH=$TOOLCHAIN_INSTALL/bin:$PATH
-          cmake -G Ninja \
-            -DCMAKE_C_COMPILER:STRING=clang \
-            -DCMAKE_CXX_COMPILER:STRING=clang++ \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
-            -DCOMPILER_RT_BAREMETAL_BUILD=ON \
-            -DCOMPILER_RT_BUILD_BUILTINS=ON \
-            -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-            -DCOMPILER_RT_BUILD_XRAY=OFF \
-            -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-            -DCOMPILER_RT_BUILD_PROFILE=OFF \
-            -DCMAKE_C_COMPILER_TARGET=riscv64-unknown-elf \
-            -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-            -DCMAKE_C_FLAGS="--target=riscv64-unknown-elf -ffreestanding" \
-            -DCMAKE_CXX_FLAGS="--target=riscv64-unknown-elf -ffreestanding" \
-            -DCMAKE_C_COMPILER_FORCED=ON \
-            -DCMAKE_CXX_COMPILER_FORCED=ON \
-            -DCMAKE_CROSSCOMPILING=ON \
-            -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
-            -B build-riscv-builtins/ \
-            -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
-          cmake --build $GITHUB_WORKSPACE/build-riscv-builtins/ -- install-builtins
-
-      - name: Build AArch64 builtins
-        if: contains(env.ENABLED_ARCHS, 'aarch64')
-        run: |
-          export TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-aarch64-toolchain/
-          export PATH=$TOOLCHAIN_INSTALL/bin:$PATH
-          cmake -G Ninja \
-            -DCMAKE_C_COMPILER:STRING=clang \
-            -DCMAKE_CXX_COMPILER:STRING=clang++ \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
-            -DCOMPILER_RT_BAREMETAL_BUILD=ON \
-            -DCOMPILER_RT_BUILD_BUILTINS=ON \
-            -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
-            -DCOMPILER_RT_BUILD_XRAY=OFF \
-            -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
-            -DCOMPILER_RT_BUILD_PROFILE=OFF \
-            -DCMAKE_C_COMPILER_TARGET=aarch64-none-elf \
-            -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-            -DCMAKE_C_FLAGS="--target=aarch64-none-elf -ffreestanding" \
-            -DCMAKE_CXX_FLAGS="--target=aarch64-none-elf -ffreestanding" \
-            -DCMAKE_C_COMPILER_FORCED=ON \
-            -DCMAKE_CXX_COMPILER_FORCED=ON \
-            -DCMAKE_CROSSCOMPILING=ON \
-            -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
-            -B build-aarch64-builtins/ \
-            -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
-          cmake --build $GITHUB_WORKSPACE/build-aarch64-builtins/ -- install-builtins
-
-      - name: Clone QEMU for Hexagon
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
-        run: |
-          git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git $GITHUB_WORKSPACE/qemu-system-hexagon
-
-      - name: Build QEMU for Hexagon
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
-        run: |
-          QEMU_INSTALL=$GITHUB_WORKSPACE/install-qemu-system-hexagon/
-          cd $GITHUB_WORKSPACE/qemu-system-hexagon
-          ./configure --target-list=hexagon-softmmu --prefix=$QEMU_INSTALL
-          cd build
-          ninja install
-          echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
-
-      - name: Check QEMU version for Hexagon
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
-        run: |
-          qemu-system-hexagon --version
+          if [ ${{ matrix.arch.name }} = "hexagon" ]; then
+            cmake -G Ninja \
+              -DCMAKE_C_COMPILER:STRING=`which clang` \
+              -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DLLVM_CMAKE_DIR:PATH=$TOOLCHAIN_INSTALL \
+              -DCMAKE_INSTALL_PREFIX:PATH=$($TOOLCHAIN_INSTALL/bin/clang -print-resource-dir) \
+              -C $GITHUB_WORKSPACE/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
+              -B build-${{ matrix.arch.triple }}-builtins/ \
+              -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
+          else
+            cmake -G Ninja \
+              -DCMAKE_C_COMPILER:STRING=`which clang` \
+              -DCMAKE_CXX_COMPILER:STRING=`which clang++` \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_INSTALL_PREFIX:PATH=$(clang -print-resource-dir) \
+              -DCOMPILER_RT_BAREMETAL_BUILD=ON \
+              -DCOMPILER_RT_BUILD_BUILTINS=ON \
+              -DCOMPILER_RT_BUILD_SANITIZERS=OFF \
+              -DCOMPILER_RT_BUILD_XRAY=OFF \
+              -DCOMPILER_RT_BUILD_LIBFUZZER=OFF \
+              -DCOMPILER_RT_BUILD_PROFILE=OFF \
+              -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
+              -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
+              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding" \
+              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding" \
+              -DCMAKE_C_COMPILER_FORCED=ON \
+              -DCMAKE_CXX_COMPILER_FORCED=ON \
+              -DCMAKE_CROSSCOMPILING=ON \
+              -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
+              -B build-${{ matrix.arch.triple }}-builtins/ \
+              -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
+          fi
+          cmake --build $GITHUB_WORKSPACE/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
 
       - name: Install Meson
         run: |
@@ -296,130 +131,59 @@ jobs:
           path: picolibc
           ref: main
 
-      - name: Build Picolibc for Hexagon
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
+      - name: Build Picolibc for ${{ matrix.arch.name }}, default-config
         run: |
           cd $GITHUB_WORKSPACE/picolibc
-          mkdir -p build-clang-hexagon-picolibc
-          cd build-clang-hexagon-picolibc
-          export PATH=$GITHUB_WORKSPACE/install-hexagon-toolchain/bin:$PATH
-          ../scripts/do-clang-hexagon-configure -Dc_link_args="-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
-          ninja
-
-      - name: Build Picolibc for ARM
-        if: contains(env.ENABLED_ARCHS, 'arm')
-        run: |
-          cd $GITHUB_WORKSPACE/picolibc
-          mkdir -p build-clang-arm-picolibc
-          cd build-clang-arm-picolibc
-          export PATH=$GITHUB_WORKSPACE/install-arm-toolchain/bin:$PATH
+          mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-default-config
+          cd build-clang-${{ matrix.arch.name }}-picolibc-default-config
+          export PATH=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-arm-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld
+          ../scripts/do-clang-${{ matrix.arch.name }}-configure ${{ matrix.arch.picolibc-default-config }}
           ninja
 
-      - name: Build Picolibc for AArch64, config default
-        if: contains(env.ENABLED_ARCHS, 'aarch64')
+      - name: Build Picolibc for ${{ matrix.arch.name }}, no-tls
         run: |
           cd $GITHUB_WORKSPACE/picolibc
-          mkdir -p build-clang-aarch64-picolibc-config-default
-          export PATH=$GITHUB_WORKSPACE/install-aarch64-toolchain/bin:$PATH
+          mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-no-tls
+          cd build-clang-${{ matrix.arch.name }}-picolibc-no-tls
+          export PATH=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          cd build-clang-aarch64-picolibc-config-default
-          ../scripts/do-clang-aarch64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ env.PICOLIBC_CONFIG_DEFAULT }}
+          ../scripts/do-clang-${{ matrix.arch.name }}-configure ${{ matrix.arch.picolibc-no-tls }}
           ninja
 
-      - name: Build Picolibc for AArch64, config no-tls
-        if: contains(env.ENABLED_ARCHS, 'aarch64')
+      - name: Get QEMU
         run: |
-          cd $GITHUB_WORKSPACE/picolibc
-          mkdir -p build-clang-aarch64-picolibc-config-no-tls
-          export PATH=$GITHUB_WORKSPACE/install-aarch64-toolchain/bin:$PATH
-          export CC_LD=eld
-          export CXX_LD=eld
-          cd build-clang-aarch64-picolibc-config-no-tls
-          ../scripts/do-clang-aarch64-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ env.PICOLIBC_CONFIG_NO_TLS }}
-          ninja
-
-
-      - name: Build Picolibc for RISCV
-        if: contains(env.ENABLED_ARCHS, 'riscv')
-        run: |
-          cd $GITHUB_WORKSPACE/picolibc
-          mkdir -p build-clang-riscv-picolibc
-          cd build-clang-riscv-picolibc
-          export PATH=$GITHUB_WORKSPACE/install-riscv-toolchain/bin:$PATH
-          export CC_LD=eld
-          export CXX_LD=eld
-          ../scripts/do-clang-riscv-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld
-          ninja
-
-      - name: Run Picolibc tests for Hexagon
-        if: contains(env.ENABLED_ARCHS, 'hexagon')
-        run: |
-          set +e
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-hexagon-picolibc
-          ninja test
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
-            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
-          fi
-        continue-on-error: true
-
-      - name: Run Picolibc tests for ARM
-        if: contains(env.ENABLED_ARCHS, 'arm')
-        run: |
-          set +e
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-arm-picolibc
-          ninja test
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
-            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
-          fi
-        continue-on-error: true
-
-      - name: Run Picolibc tests for AArch64, config default
-        if: contains(env.ENABLED_ARCHS, 'aarch64')
-        run: |
-          set +e
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-default
-          ninja test
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
-            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
-          fi
-        continue-on-error: true
-
-      - name: Run Picolibc tests for AArch64, config no-tls
-        if: contains(env.ENABLED_ARCHS, 'aarch64')
-        run: |
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-aarch64-picolibc-config-no-tls
-          ninja test
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
-            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
-          fi
-        continue-on-error: true
-
-      - name: Run Picolibc tests for RISCV
-        if: contains(env.ENABLED_ARCHS, 'riscv')
-        run: |
-          set +e
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-riscv-picolibc
-          ninja test
-          rc=$?
-          if [ "$rc" -ne 0 ]; then
-            cat meson-logs/testlog.txt >> ${{ env.PICOLIBC_FAIL_LOGS }}
-          fi
-        continue-on-error: true
-
-      - name: Check if all tests pass
-        run: |
-          if [ -s ${{ env.PICOLIBC_FAIL_LOGS }} ]; then
-            echo "===== TEST FAILURE LOGS ====="
-            cat ${{ env.PICOLIBC_FAIL_LOGS }}
-            exit 1
+          if [ ${{ matrix.arch.name }} = "hexagon" ]; then
+            git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git $GITHUB_WORKSPACE/qemu-system-hexagon
+            QEMU_INSTALL=$GITHUB_WORKSPACE/install-qemu-system-hexagon/
+            cd $GITHUB_WORKSPACE/qemu-system-hexagon
+            ./configure --target-list=hexagon-softmmu --prefix=$QEMU_INSTALL
+            cd build
+            ninja install
+            echo "PATH=$QEMU_INSTALL/bin/:$PATH" >> $GITHUB_ENV
           else
-            echo "All tests pass"
+            sudo apt install qemu-system-arm qemu-system-aarch64 qemu-system-riscv32 qemu-system-riscv64
           fi
+
+      - name: Run Picolibc tests for ${{ matrix.arch.name }}, default-config
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config
+          ninja test
+
+      - name: Run Picolibc tests for ${{ matrix.arch.name }}, no-tls
+        run: |
+          cd $GITHUB_WORKSPACE/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls
+          ninja test
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.arch.name }}
+          path: |
+            picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config/meson-logs/testlog.txt
+            picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls/meson-logs/testlog.txt
+          if-no-files-found: ignore
+          retention-days: 60
