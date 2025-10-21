@@ -1,7 +1,7 @@
 name: nightly picolibc builder
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -55,6 +55,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: llvm-project/llvm/tools/eld
+
+      - name: Record pre-build entry
+        run: |
+          cd llvm-project/llvm/tools/eld
+          git branch
+          DASH_DIR="$(mktemp -d)"
+          cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git fetch --all
+          git checkout dashboard
+          cp ${DASH_DIR}/record_builds.py .
+          python record_builds.py --workflow picolibc --record --fail --run-id ${{github.run_id}} --arch ${{ matrix.arch.name }}
+          rm -f record_builds.py
+          git add .
+          git commit -m "Add picolibc build status data in DB"
+          git push -f origin HEAD:refs/heads/dashboard
+          rm -rf ${DASH_DIR}
+          git checkout -
 
       - name: Configure LLVM toolchain for ${{ matrix.arch.name }}
         run: |
@@ -187,3 +206,22 @@ jobs:
             picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls/meson-logs/testlog.txt
           if-no-files-found: ignore
           retention-days: 60
+
+      - name: Update build entry
+        run: |
+          cd llvm-project/llvm/tools/eld
+          git branch
+          DASH_DIR="$(mktemp -d)"
+          cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+          git fetch --all
+          git checkout dashboard
+          cp ${DASH_DIR}/record_builds.py .
+          python record_builds.py --workflow picolibc --update --pass --run-id ${{github.run_id}} --arch ${{ matrix.arch.name }}
+          rm -f record_builds.py
+          git add .
+          git commit -m "Add picolibc build status data in DB"
+          git push -f origin HEAD:refs/heads/dashboard
+          rm -rf ${DASH_DIR}
+          git checkout -
