@@ -1,0 +1,39 @@
+name: Hourly Build Status Dashboard Updater
+
+on:
+  schedule:
+    - cron: '* 1 * * *'  # Runs hourly
+  workflow_dispatch:     # Allows manual triggering
+
+jobs:
+  update-dashboard-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout ELD
+        uses: actions/checkout@v4
+        with:
+          path: llvm-project/llvm/tools/eld
+
+      - name: Save JS Format Build Data
+        run: |
+            cd llvm-project/llvm/tools/eld
+            DASH_DIR="$(mktemp -d)"
+            cp -r dash ${DASH_DIR}/
+            cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/dash/
+            git config --global user.name 'github-actions'
+            git config --global user.email 'github-actions@github.com'
+            git fetch --all
+            git checkout dashboard
+            cp build-status.db ${DASH_DIR}/dash/
+            git checkout documentation
+            cp -r ${DASH_DIR}/dash .
+            cd dash
+            python record_builds.py --workflow picolibc --emit
+            python record_builds.py --workflow musl --emit
+            rm -f record_builds.py build-status.db
+            rm -rf ${DASH_DIR}
+            cd ..
+            git add .
+            git commit -m "Update build status data for dashboard"
+            git push -f origin HEAD:refs/heads/documentation
