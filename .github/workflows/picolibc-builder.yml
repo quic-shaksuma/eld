@@ -41,6 +41,14 @@ jobs:
             picolibc-no-tls: "-Dthread-local-storage=false"
             extra-c-flags: "-march=rv32imafdc -mabi=ilp32d"
             extra-cxx-flags: "-march=rv32imafdc -mabi=ilp32d"
+          - name: arm
+            picolibc-name: arm
+            triple: arm-none-eabi
+            llvm-target: ARM
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+            extra-c-flags: "-march=armv7-a"
+            extra-cxx-flags: "-march=armv7-a"
 
     steps:
       - name: Set up Clang 20
@@ -63,6 +71,7 @@ jobs:
           path: llvm-project/llvm/tools/eld
 
       - name: Record pre-build entry
+        if: github.event_name == 'schedule'
         run: |
           cd llvm-project/llvm/tools/eld
           git branch
@@ -131,6 +140,7 @@ jobs:
               -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
               -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
               -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-cxx-flags }}" \
+              -DCMAKE_ASM_FLAGS="--target=${{ matrix.arch.triple }} ${{ matrix.arch.extra-cxx-flags }}" \
               -DCMAKE_C_COMPILER_FORCED=ON \
               -DCMAKE_CXX_COMPILER_FORCED=ON \
               -DCMAKE_CROSSCOMPILING=ON \
@@ -181,7 +191,7 @@ jobs:
           export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }}
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, no-tls
@@ -192,7 +202,7 @@ jobs:
           export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }}
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }} -Dc_args="${{ matrix.arch.extra-c-flags }}" -Dcpp_args="${{ matrix.arch.extra-cxx-flags }}"
           ninja
 
       - name: Get QEMU
@@ -231,6 +241,7 @@ jobs:
           retention-days: 60
 
       - name: Update build entry
+        if: github.event_name == 'schedule'
         run: |
           cd llvm-project/llvm/tools/eld
           git branch
