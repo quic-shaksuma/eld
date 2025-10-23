@@ -1,7 +1,7 @@
 name: nightly picolibc builder
 
 on:
-  pull_request: {} # Uncomment only to test this WF file update.
+  # pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 10:00 PM Central
     - cron: '0 4 * * *'
@@ -16,25 +16,31 @@ jobs:
       matrix:
         arch:
           - name: hexagon
+            picolibc-name: hexagon
             triple: hexagon-unknown-none-elf
             llvm-target: Hexagon
-            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
-            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
+            picolibc-default-config: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf"
+            picolibc-no-tls: "-Dc_link_args=-L$(clang -print-resource-dir)/lib/hexagon-unknown-none-elf -Dthread-local-storage=false "
           - name: aarch64
+            picolibc-name: aarch64
             triple: aarch64-none-elf
             llvm-target: AArch64
-            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
-            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
-#          - name: arm
-#            triple: arm-none-eabi
-#            llvm-target: ARM
-#            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
-#            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
-#          - name: riscv
-#            triple: riscv64-none-elf
-#            llvm-target: RISCV
-#            picolibc-default-config: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld"
-#            picolibc-no-tls: "-Dc_ld=ld.eld -Dcpp_ld=ld.eld -Dthread-local-storage=false"
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+          - name: riscv64
+            picolibc-name: riscv
+            triple: riscv64-unknown-unknown-elf
+            llvm-target: RISCV
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+          - name: riscv32
+            picolibc-name: rv32imafdc
+            triple: riscv32-unknown-unknown-elf
+            llvm-target: RISCV
+            picolibc-default-config: ""
+            picolibc-no-tls: "-Dthread-local-storage=false"
+            extra-c-flags: "-march=rv32imafdc -mabi=ilp32d"
+            extra-cxx-flags: "-march=rv32imafdc -mabi=ilp32d"
 
     steps:
       - name: Set up Clang 20
@@ -49,7 +55,7 @@ jobs:
           sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev 
       - name: Checkout LLVM Project
         run: |
-          git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project $GITHUB_WORKSPACE/llvm-project
+          git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project ${{ github.workspace }}/llvm-project
 
       - name: Checkout ELD
         uses: actions/checkout@v4
@@ -87,17 +93,17 @@ jobs:
             -DCMAKE_CXX_FLAGS="-stdlib=libc++" \
             -DLLVM_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
             -DELD_TARGETS_TO_BUILD=${{ matrix.arch.llvm-target }} \
-            -DCMAKE_INSTALL_PREFIX=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain \
-            -S $GITHUB_WORKSPACE/llvm-project/llvm \
-            -B $GITHUB_WORKSPACE/build-${{ matrix.arch.name }}-toolchain/ \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain \
+            -S ${{ github.workspace }}/llvm-project/llvm \
+            -B ${{ github.workspace }}/build-${{ matrix.arch.name }}-toolchain/ \
 
       - name: Build LLVM toolchain for ${{ matrix.arch.name }}
         run: |
-          cmake --build $GITHUB_WORKSPACE/build-${{ matrix.arch.name }}-toolchain/ -- install
+          cmake --build ${{ github.workspace }}/build-${{ matrix.arch.name }}-toolchain/ -- install
 
       - name: Build compiler-rt builtins
         run: |
-          export TOOLCHAIN_INSTALL=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain/
+          export TOOLCHAIN_INSTALL=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/
           export PATH=$TOOLCHAIN_INSTALL/bin:$PATH
           if [ ${{ matrix.arch.name }} = "hexagon" ]; then
             cmake -G Ninja \
@@ -106,9 +112,9 @@ jobs:
               -DCMAKE_BUILD_TYPE=Release \
               -DLLVM_CMAKE_DIR:PATH=$TOOLCHAIN_INSTALL \
               -DCMAKE_INSTALL_PREFIX:PATH=$($TOOLCHAIN_INSTALL/bin/clang -print-resource-dir) \
-              -C $GITHUB_WORKSPACE/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
+              -C ${{ github.workspace }}/llvm-project/compiler-rt/cmake/caches/hexagon-builtins-baremetal.cmake \
               -B build-${{ matrix.arch.triple }}-builtins/ \
-              -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
+              -S ${{ github.workspace }}/llvm-project/compiler-rt/
           else
             cmake -G Ninja \
               -DCMAKE_C_COMPILER:STRING=`which clang` \
@@ -123,16 +129,27 @@ jobs:
               -DCOMPILER_RT_BUILD_PROFILE=OFF \
               -DCMAKE_C_COMPILER_TARGET=${{ matrix.arch.triple }} \
               -DLLVM_ENABLE_PER_TARGET_RUNTIME_DIR=ON \
-              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding" \
-              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding" \
+              -DCMAKE_C_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-c-flags }}" \
+              -DCMAKE_CXX_FLAGS="--target=${{ matrix.arch.triple }} -ffreestanding ${{ matrix.arch.extra-cxx-flags }}" \
               -DCMAKE_C_COMPILER_FORCED=ON \
               -DCMAKE_CXX_COMPILER_FORCED=ON \
               -DCMAKE_CROSSCOMPILING=ON \
               -DCOMPILER_RT_DEFAULT_TARGET_ONLY=ON \
               -B build-${{ matrix.arch.triple }}-builtins/ \
-              -S $GITHUB_WORKSPACE/llvm-project/compiler-rt/
+              -S ${{ github.workspace }}/llvm-project/compiler-rt/
           fi
-          cmake --build $GITHUB_WORKSPACE/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
+          cmake --build ${{ github.workspace }}/build-${{ matrix.arch.triple }}-builtins/ -- install-builtins
+
+      - name: Pack toolchain tarball
+        run: |
+          tar -C ${{ github.workspace }}/ \
+              -Jcvf install-${{ matrix.arch.name }}-toolchain.tar.xz install-${{ matrix.arch.name }}-toolchain
+
+      - name: Upload toolchain tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: install-${{ matrix.arch.name }}-toolchain.tar.xz
+          path: install-${{ matrix.arch.name }}-toolchain.tar.xz
 
       - name: Install Meson
         run: |
@@ -144,40 +161,46 @@ jobs:
           echo "PATH=$PWD/bin:$PATH" >> $GITHUB_ENV
 
       - name: Checkout Picolibc
-        uses: actions/checkout@v4
-        with:
-          repository: picolibc/picolibc
-          path: picolibc
-          ref: main
+        run: |
+          git clone https://github.com/picolibc/picolibc.git ${{ github.workspace }}/picolibc
+          if [ "${{ matrix.arch.name }}" = "riscv64" ] || [ "${{ matrix.arch.name }}" = "riscv32" ]; then
+            cd ${{ github.workspace }}/picolibc
+            git config user.name "CI Bot"
+            git config user.email "ci@example.com"
+            git remote add quic-k https://github.com/quic-k/picolibc.git
+            git fetch quic-k arm_riscv_ci
+            # use a temporary patches for riscv
+            git cherry-pick $(git rev-list -n 2 quic-k/arm_riscv_ci)
+          fi
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, default-config
         run: |
-          cd $GITHUB_WORKSPACE/picolibc
+          cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-default-config
           cd build-clang-${{ matrix.arch.name }}-picolibc-default-config
-          export PATH=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.name }}-configure ${{ matrix.arch.picolibc-default-config }}
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-default-config }}
           ninja
 
       - name: Build Picolibc for ${{ matrix.arch.name }}, no-tls
         run: |
-          cd $GITHUB_WORKSPACE/picolibc
+          cd ${{ github.workspace }}/picolibc
           mkdir -p build-clang-${{ matrix.arch.name }}-picolibc-no-tls
           cd build-clang-${{ matrix.arch.name }}-picolibc-no-tls
-          export PATH=$GITHUB_WORKSPACE/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
+          export PATH=${{ github.workspace }}/install-${{ matrix.arch.name }}-toolchain/bin:$PATH
           export CC_LD=eld
           export CXX_LD=eld
-          ../scripts/do-clang-${{ matrix.arch.name }}-configure ${{ matrix.arch.picolibc-no-tls }}
+          ../scripts/do-clang-${{ matrix.arch.picolibc-name }}-configure -Dc_ld=ld.eld -Dcpp_ld=ld.eld ${{ matrix.arch.picolibc-no-tls }}
           ninja
 
       - name: Get QEMU
         run: |
           if [ ${{ matrix.arch.name }} = "hexagon" ]; then
-            git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git $GITHUB_WORKSPACE/qemu-system-hexagon
-            QEMU_INSTALL=$GITHUB_WORKSPACE/install-qemu-system-hexagon/
-            cd $GITHUB_WORKSPACE/qemu-system-hexagon
+            git clone --branch hex-next --single-branch --depth 1 https://github.com/quic/qemu.git ${{ github.workspace }}/qemu-system-hexagon
+            QEMU_INSTALL=${{ github.workspace }}/install-qemu-system-hexagon/
+            cd ${{ github.workspace }}/qemu-system-hexagon
             ./configure --target-list=hexagon-softmmu --prefix=$QEMU_INSTALL
             cd build
             ninja install
@@ -188,12 +211,12 @@ jobs:
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, default-config
         run: |
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config
+          cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-default-config
           ninja test
 
       - name: Run Picolibc tests for ${{ matrix.arch.name }}, no-tls
         run: |
-          cd $GITHUB_WORKSPACE/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls
+          cd ${{ github.workspace }}/picolibc/build-clang-${{ matrix.arch.name }}-picolibc-no-tls
           ninja test
 
       - name: Upload test logs
