@@ -30,27 +30,19 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
-      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
+      - name: Record pre-build entry
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "musl"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: "x86-64"
 
-      # - name: Record pre-build entry
-      #   shell: bash
-      #   run: |
-      #     cd llvm-project/llvm/tools/eld
-      #     git branch
-      #     DASH_DIR="$(mktemp -d)"
-      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-      #     git config --global user.name 'github-actions'
-      #     git config --global user.email 'github-actions@github.com'
-      #     git fetch --all
-      #     git checkout dashboard
-      #     cp ${DASH_DIR}/record_builds.py .
-      #     python record_builds.py --workflow musl --record --fail --run-id ${{github.run_id}} --arch x86-64
-      #     rm -f record_builds.py
-      #     git add .
-      #     git commit -m "Add musl build status data in DB"
-      #     git push -f origin HEAD:refs/heads/dashboard
-      #     rm -rf ${DASH_DIR}
-      #     git checkout -
+      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
 
       - name: Setup ELD Environment
         run: |
@@ -95,25 +87,17 @@ jobs:
 
           echo "Test results validated"
 
-      # - name: Update build entry
-      #   run: |
-      #     cd llvm-project/llvm/tools/eld
-      #     git branch
-      #     DASH_DIR="$(mktemp -d)"
-      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-      #     git config --global user.name 'github-actions'
-      #     git config --global user.email 'github-actions@github.com'
-      #     git fetch --all
-      #     git checkout dashboard
-      #     git pull
-      #     cp ${DASH_DIR}/record_builds.py .
-      #     python record_builds.py --workflow musl --update --pass --run-id ${{github.run_id}} --arch x86-64
-      #     rm -f record_builds.py
-      #     git add .
-      #     git commit -m "Add musl build status data in DB"
-      #     git push -f origin HEAD:refs/heads/dashboard
-      #     rm -rf ${DASH_DIR}
-      #     git checkout -
+      - name: Update build entry
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "musl"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: "x86-64"
 
   test-musl:
     strategy:
@@ -136,27 +120,19 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
-      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
+      - name: Record pre-build entry
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "pre-"
+          workflow-name: "musl"
+          record-mode: "record"
+          status: "fail"
+          run-id: ${{github.run_id}}
+          arch-name: ${{ matrix.arch }}
 
-      # - name: Record pre-build entry
-      #   shell: bash
-      #   run: |
-      #     cd llvm-project/llvm/tools/eld
-      #     git branch
-      #     DASH_DIR="$(mktemp -d)"
-      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-      #     git config --global user.name 'github-actions'
-      #     git config --global user.email 'github-actions@github.com'
-      #     git fetch --all
-      #     git checkout dashboard
-      #     cp ${DASH_DIR}/record_builds.py .
-      #     python record_builds.py --workflow musl --record --fail --run-id ${{github.run_id}} --arch ${{ matrix.arch }}
-      #     rm -f record_builds.py
-      #     git add .
-      #     git commit -m "Add musl build status data in DB"
-      #     git push -f origin HEAD:refs/heads/dashboard
-      #     rm -rf ${DASH_DIR}
-      #     git checkout -
+      - uses: ./llvm-project/llvm/tools/eld/.github/workflows/MuslBuilderBuildELD
 
       - name: Install dependencies
         shell: bash
@@ -215,22 +191,14 @@ jobs:
           FileCheck --check-prefixes=COUNT ${ELD_SOURCE_DIR}/test/musl/${{ matrix.arch }}/test-failures.txt < src/REPORT
           echo "Test results validated"
 
-      # - name: Update build entry
-      #   run: |
-      #     cd llvm-project/llvm/tools/eld
-      #     git branch
-      #     DASH_DIR="$(mktemp -d)"
-      #     cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-      #     git config --global user.name 'github-actions'
-      #     git config --global user.email 'github-actions@github.com'
-      #     git fetch --all
-      #     git checkout dashboard
-      #     git pull
-      #     cp ${DASH_DIR}/record_builds.py .
-      #     python record_builds.py --workflow musl --update --pass --run-id ${{github.run_id}} --arch ${{ matrix.arch }}
-      #     rm -f record_builds.py
-      #     git add .
-      #     git commit -m "Add musl build status data in DB"
-      #     git push -f origin HEAD:refs/heads/dashboard
-      #     rm -rf ${DASH_DIR}
-      #     git checkout -
+      - name: Update build entry
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
+        with:
+          enabled: true
+          project: "llvm-project/llvm/tools/eld"
+          stage: "post-"
+          workflow-name: "musl"
+          record-mode: "update"
+          status: "pass"
+          run-id: ${{github.run_id}}
+          arch-name: ${{ matrix.arch }}
