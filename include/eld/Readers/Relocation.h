@@ -145,7 +145,11 @@ public:
 
   bool isMergeKind() const;
 
-  bool issueOverflow(Relocator &) const;
+  bool issueSignedOverflow(Relocator &R, int64_t Value, int64_t Min,
+                           int64_t Max) const;
+
+  bool issueUnsignedOverflow(Relocator &R, uint64_t Value, uint64_t Min,
+                             uint64_t Max) const;
 
   bool issueUnencodableImmediate(Relocator &R, int64_t Imm) const;
 
