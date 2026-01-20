@@ -75,9 +75,9 @@ jobs:
       - name: Build Project
         run: |
           cd obj
-          ninja -j8
+          ninja
 
       - name: Run tests
         run: |
           cd obj
-          ninja -j8 check-eld
+          ninja check-eld
