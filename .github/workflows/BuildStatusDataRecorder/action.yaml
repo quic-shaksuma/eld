@@ -86,6 +86,7 @@ runs:
         # Record build status data for current workflow.
         echo "Proceeding with data recording..."
         cp ${DASH_DIR}/record_builds.py .
+        echo "Branch name: ${{ inputs.branch-name }}"
         python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
         cp build-status.db ${DASH_DIR}/
         rm -f record_builds.py
