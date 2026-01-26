@@ -1,7 +1,5 @@
 name: Nightly builder for testing eld against musl-test-suite
 on:
-  schedule:
-      - cron: '0 2 * * *' # 2:00 AM
   workflow_dispatch:     # Allows manual triggering
   pull_request:
     paths:
