@@ -32,8 +32,6 @@ inputs:
 
 runs:
   using: "composite"
-  continue-on-error: true
-  timeout-minutes: 60
   steps:
     - name: Record ${{ inputs.stage }}build entry
       if: ${{ inputs.enabled }} == "true"
