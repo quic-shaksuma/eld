@@ -37,6 +37,9 @@ runs:
         cd ${{ inputs.project }}
         branch_name="${{github.event.pull_request.head.ref}}"
         echo $branch_name
+        base_branch_name="${{ github.event.pull_request.base.ref }}"
+        echo $base_branch_name
+        final_branch="${branch_name:-$base_branch_name}"
         DASH_DIR="$(mktemp -d)"
         cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
         git config --global user.name 'github-actions'
@@ -87,7 +90,7 @@ runs:
         cp ${DASH_DIR}/record_builds.py .
         # Set +e to not immediately exit "run" step on failure.
         set +e
-        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch $branch_name
+        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch $final_branch
         EXITCODE=$?
         if [ "$EXITCODE" -ne 0 ]; then
            echo "Build Data Recording Failed!"
