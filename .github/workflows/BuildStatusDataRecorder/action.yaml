@@ -26,9 +26,6 @@ inputs:
   arch-name:
     description: "Workflow matrix build arch name"
     required: true
-  branch-name:
-    description: "Build branch name"
-    required: true
 
 runs:
   using: "composite"
@@ -38,6 +35,8 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.project }}
+        branch_name="${{github.event.pull_request.head.ref}}"
+        echo $branch_name
         DASH_DIR="$(mktemp -d)"
         cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
         git config --global user.name 'github-actions'
@@ -88,7 +87,7 @@ runs:
         cp ${DASH_DIR}/record_builds.py .
         # Set +e to not immediately exit "run" step on failure.
         set +e
-        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch ${{ inputs.branch-name }}
+        python record_builds.py --workflow ${{ inputs.workflow-name }} --${{ inputs.record-mode }} --${{ inputs.status }} --run-id ${{ inputs.run-id }} --arch ${{ inputs.arch-name }} --branch $branch_name
         EXITCODE=$?
         if [ "$EXITCODE" -ne 0 ]; then
            echo "Build Data Recording Failed!"

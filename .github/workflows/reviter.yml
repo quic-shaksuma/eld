@@ -55,7 +55,6 @@ jobs:
           ref: main
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -66,7 +65,6 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: "all"
-          branch-name: ${{ github.event.pull_request.head.ref }}
 
       - name: Run CMake
         run: |
@@ -96,7 +94,6 @@ jobs:
           ninja -j8 check-eld
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -107,4 +104,3 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: "all"
-          branch-name: ${{ github.event.pull_request.head.ref }}
