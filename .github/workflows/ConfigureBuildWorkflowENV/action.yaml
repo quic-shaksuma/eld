@@ -7,5 +7,5 @@ runs:
     - run: |
         # Append Custom Variables to GITHUB_ENV
         echo "Configuring GITHUB_ENV with custom variables"
-        cat "BUILD_BRANCH=main" >> $GITHUB_ENV
+        echo "BUILD_BRANCH=main" >> $GITHUB_ENV
       shell: bash
