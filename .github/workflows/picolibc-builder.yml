@@ -60,7 +60,8 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt update
-          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev 
+          sudo apt install -y libc++-dev libc++abi-dev ccache libclang-rt-20-dev cmake ninja-build make bison flex python3 m4 git libglib2.0-dev
+
       - name: Checkout LLVM Project
         run: |
           git clone --branch main --single-branch --depth 1 https://github.com/llvm/llvm-project ${{ github.workspace }}/llvm-project
@@ -70,8 +71,10 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
+      - name: Configure branch name
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -82,7 +85,7 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch.name }}
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{BUILD_BRANCH}}"
 
       - name: Configure LLVM toolchain for ${{ matrix.arch.name }}
         run: |
@@ -236,7 +239,6 @@ jobs:
           retention-days: 60
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -247,4 +249,4 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch.name }}
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{BUILD_BRANCH}}"

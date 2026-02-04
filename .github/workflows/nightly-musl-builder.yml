@@ -22,8 +22,10 @@ jobs:
         with:
           path: llvm-project/llvm/tools/eld
 
+      - name: Configure branch name
+        uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
+
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -34,7 +36,7 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: "x86-64"
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{BUILD_BRANCH}}"
 
       - name: Install dependencies
         shell: bash
@@ -100,7 +102,6 @@ jobs:
           echo "Test results validated"
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -111,7 +112,7 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: "x86-64"
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{BUILD_BRANCH}}"
 
   test-musl:
     strategy:
@@ -128,7 +129,6 @@ jobs:
           path: llvm-project/llvm/tools/eld
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -139,7 +139,7 @@ jobs:
           status: "fail"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch }}
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{BUILD_BRANCH}}"
 
       - uses: ./llvm-project/llvm/tools/eld/.github/workflows/FetchNightlyToolset
 
@@ -205,7 +205,6 @@ jobs:
           echo "Test results validated"
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -216,4 +215,4 @@ jobs:
           status: "pass"
           run-id: ${{github.run_id}}
           arch-name: ${{ matrix.arch }}
-          branch-name: ${{ github.event.pull_request.head.ref }}
+          branch-name: "${{BUILD_BRANCH}}"
