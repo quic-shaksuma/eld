@@ -40,8 +40,8 @@ runs:
         cd ${{ inputs.project }}
         DASH_DIR="$(mktemp -d)"
         cp .github/workflows/scripts/record_builds.py ${DASH_DIR}/
-        git config --global user.name 'github-actions'
-        git config --global user.email 'github-actions@github.com'
+        git config user.name 'github-actions'
+        git config user.email 'github-actions@github.com'
         # Switch to dashboard branch to access build-status.db
         git fetch --all
         git checkout dashboard
