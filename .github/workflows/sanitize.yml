@@ -1,7 +1,7 @@
 name: Nightly sanitizer check
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch:     # Allows manual triggering
@@ -22,6 +22,10 @@ jobs:
           echo 'int main() { std::cout << "Hello, Clang on Ubuntu 24.04!" << std::endl; return 0; }' >> test.cpp
           clang++ -std=c++17 -stdlib=libc++ test.cpp -o test_clang
           ./test_clang
+      - name: Setup python
+        run: |
+          sudo apt install python3
+          python3 --version
 
       - name: Checkout llvm-project
         uses: actions/checkout@v4
@@ -40,7 +44,6 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -82,7 +85,6 @@ jobs:
           ninja -j8 check-eld
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
