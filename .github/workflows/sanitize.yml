@@ -7,9 +7,11 @@ on:
   workflow_dispatch:     # Allows manual triggering
 
 jobs:
-  BASE_BUILD_DIR=/local/mnt/workspace/actions-runner_2/_work_san/
   build-and-runtest-with-asan-ubsan:
     runs-on: self-hosted
+  
+    env:
+        BASE_BUILD_DIR : "/local/mnt/workspace/actions-runner_2/_work_san/"
 
     steps:
       - name: Build and Test with Clang and show versions
