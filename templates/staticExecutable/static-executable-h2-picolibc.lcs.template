@@ -105,7 +105,7 @@ SECTIONS
   TLS_END = _TLS_END_;
   __tbss_end = _TLS_END_;
   __tbss_size = __tbss_end - __tbss_start;
-  __tbss_offset = __tbss_end - __tdata_start;
+  __tbss_offset = __tbss_start - __tdata_start;
 
   . = ALIGN(4K);
 
