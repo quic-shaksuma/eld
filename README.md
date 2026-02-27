@@ -144,13 +144,6 @@ To run the DCO checks locally use the following command:
 repolinter lint </path/to/eld>
 ```
 
-## ELD Build Status
-
-Live status of workflows building with ELD
-
-[![Getting latest build status...](https://qualcomm.github.io/eld/dash/dashboard.png)](https://qualcomm.github.io/eld/dash/dash.html)
-
-
 ## License
 
 Licensed under [BSD 3-Clause License](LICENSE)
