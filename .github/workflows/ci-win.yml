@@ -1,7 +1,7 @@
 name: Windows Arm64/x86_64 Nightly
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     # 9:00 PM Central
     - cron: '0 2 * * *'
@@ -76,6 +76,19 @@ jobs:
       - name: Install PyYAML
         shell: bash
         run: python -m pip install pyyaml
+
+      - name: Install QEMU with winget
+        shell: pwsh
+        run: |
+          if (-not (Get-Command qemu-system-x86_64.exe -ErrorAction SilentlyContinue)) {
+            winget install --id QEMU.QEMU -e --accept-package-agreements --accept-source-agreements
+          }
+          $qemu = Get-Command qemu-system-x86_64.exe -ErrorAction Stop
+          Split-Path $qemu.Path | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Verify QEMU installation
+        shell: pwsh
+        run: qemu-system-x86_64.exe --help
 
       - name: Run tests
         working-directory: nightly/obj
