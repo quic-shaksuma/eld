@@ -164,7 +164,7 @@ repolinter lint </path/to/eld>
 
 Live status of workflows building with ELD
 
-[![Getting latest build status...](https://qualcomm.github.io/eld/dash/dashboard.png)](https://qualcomm.github.io/eld/dash/dash.html)
+[![Getting latest build status...](https://raw.githubusercontent.com/qualcomm/eld/documentation/dash/dashboard.png)](https://qualcomm.github.io/eld/dash/dash.html)
 
 
 ## License
