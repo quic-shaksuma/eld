@@ -13,7 +13,6 @@
 #include "Expected.h"
 #include "LinkerScript.h"
 #include "ThreadPool.h"
-#include "eld/Support/InputTarReader.h"
 #include <string>
 #include <string_view>
 #include <sys/types.h>
@@ -24,6 +23,7 @@ class BitcodeFile;
 class BranchIsland;
 class ELFSection;
 class ELFSegment;
+struct EntryInfo;
 class Fragment;
 class INIReader;
 class InputFile;
@@ -1250,12 +1250,12 @@ public:
 private:
   TarFile(std::unique_ptr<eld::MemoryArea> Buf,
           std::vector<std::string> EntryNames,
-          std::vector<eld::InputTarReader::EntryInfo> RegularEntries);
+          std::vector<eld::EntryInfo> RegularEntries);
 
   bool m_IsInitialized = false;
   std::unique_ptr<eld::MemoryArea> m_Buffer;
   std::vector<std::string> m_EntryNames;
-  std::vector<eld::InputTarReader::EntryInfo> m_RegularEntries;
+  std::vector<eld::EntryInfo> m_RegularEntries;
 };
 
 /// InputFile represents an input file. Input file can be an object file,

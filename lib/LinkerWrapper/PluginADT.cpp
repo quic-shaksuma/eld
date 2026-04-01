@@ -1646,7 +1646,7 @@ plugin::MemoryBuffer::~MemoryBuffer() {}
 
 plugin::TarFile::TarFile(
     std::unique_ptr<eld::MemoryArea> Buf, std::vector<std::string> EntryNames,
-    std::vector<eld::InputTarReader::EntryInfo> RegularEntries)
+    std::vector<eld::EntryInfo> RegularEntries)
     : m_IsInitialized(true), m_Buffer(std::move(Buf)),
       m_EntryNames(std::move(EntryNames)),
       m_RegularEntries(std::move(RegularEntries)) {}

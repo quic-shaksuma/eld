@@ -23,6 +23,14 @@ namespace eld {
 
 class LinkerConfig;
 
+/// EntryInfo has the name,offset and size of the contents of
+/// a tar file and can be used to inspect the tar contents.
+struct EntryInfo {
+    std::string Name;
+    size_t Offset = 0;
+    size_t Size = 0;
+};
+
 /// \class InputTarReader
 /// \brief Reads a tar archive into memory as a name->contents map.
 ///
@@ -30,12 +38,6 @@ class LinkerConfig;
 /// without writing extracted files to disk.
 class InputTarReader {
 public:
-  struct EntryInfo {
-    std::string Name;
-    size_t Offset = 0;
-    size_t Size = 0;
-  };
-
   using FileMap = llvm::StringMap<std::string>;
 
   /// Parse tar bytes directly from memory.

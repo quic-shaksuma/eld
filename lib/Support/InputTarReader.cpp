@@ -179,7 +179,7 @@ InputTarReader::listEntryNames(llvm::StringRef TarData) {
   return Names;
 }
 
-eld::Expected<std::vector<InputTarReader::EntryInfo>>
+eld::Expected<std::vector<EntryInfo>>
 InputTarReader::listRegularFileEntries(llvm::StringRef TarData) {
   std::vector<EntryInfo> Entries;
   auto E =
