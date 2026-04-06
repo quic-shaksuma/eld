@@ -421,7 +421,10 @@ Common MEMORY pitfalls and errors
 """""""""""""""""""""""""""""""""
 
 - **Tokenization**: ``ORIGIN``/``LENGTH`` must be separate tokens (``ORIGIN =
-  ...``); scripts like ``ORIGIN= 0x1000`` are rejected.
+  ...``);
+  To be more compatible with GNU linker, parsing of ':' and '='
+  inside MEMORY command is modified to accept no white-space around them.
+  So, script like ``RAM :ORIGIN =0x1000, LENGTH = 0x1000`` will be accepted.
 - **Unknown region name**: ``>REGION`` or ``AT>REGION`` refers to a region not
   defined in ``MEMORY`` (error: ``Cannot find memory region ...``).
 - **No region assigned**: if ``MEMORY`` is present and an allocatable output

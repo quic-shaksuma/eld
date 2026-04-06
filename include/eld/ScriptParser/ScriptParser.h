@@ -58,6 +58,19 @@ private:
   /// - PROVIDE_HIDDEN(symbol = expression);
   bool readAssignment(llvm::StringRef Tok);
 
+  /// Validates assignment formatting by enforcing surrounding whitespace around
+  /// assignment operators in the current line.
+  /// \param Tok Token that initiated assignment parsing.
+  /// \returns False and records a parser error when spacing is invalid.
+  bool isValidAssignment(llvm::StringRef Tok);
+
+  /// Returns true if every occurrence of \p op in \p line has a space before
+  /// and after the operator.
+  /// \param line Source line containing a potential assignment expression.
+  /// \param op Assignment operator to validate.
+  /// \returns True when all occurrences are surrounded by spaces.
+  bool hasSpaceAroundOp(llvm::StringRef line, llvm::StringRef op);
+
   /// This is an operator-precedence parser to parse a linker
   /// script expression.
   Expression *readExpr();
@@ -92,6 +105,8 @@ private:
 
   bool readSymbolAssignment(llvm::StringRef Tok,
                             Assignment::Type Type = Assignment::Type::DEFAULT);
+
+  bool isAssignmentOperator(llvm::StringRef Op) const;
 
   Expression *readTernary(Expression *Cond);
 
@@ -240,6 +255,11 @@ private:
   ExcludePattern *createExcludePattern(StrToken *S);
 
   uint32_t OverlayCounter = 0;
+
+  bool InMemoryCmd = false;
+
+  static constexpr llvm::StringRef AssignmentOps[] = {
+      "<<=", ">>=", "*=", "/=", "+=", "-=", "&=", "|=", "^=", "="};
 };
 } // namespace v2
 } // namespace eld

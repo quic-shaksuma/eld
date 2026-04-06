@@ -1,0 +1,26 @@
+UNSUPPORTED: old_lsparser
+#---MissingWhitespace.test--------------------- Executable------------------#
+#BEGIN_COMMENT
+# This test checks error reporting for assignment expressions that miss
+# whitespace around assignment operators, except in MEMORY command.
+#END_COMMENT
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script.t 2>&1 | %filecheck %s --check-prefix CHECK
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script1.t 2>&1 | %filecheck %s --check-prefix CHECK1
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script2.t 2>&1 | %filecheck %s --check-prefix CHECK2
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script3.t 2>&1 | %filecheck %s --check-prefix CHECK3
+RUN: %not %lsparserverifier %lsparserverifier_opts %p/Inputs/script4.t 2>&1 | %filecheck %s --check-prefix CHECK4
+
+#CHECK: Error: {{.*}}script.t:6: missing whitespace around assignment operator '=' in assignment expression
+#CHECK: ADDITIONAL_INPUT2=0x600df00d;
+
+#CHECK1: Error: {{.*}}script1.t:1: missing whitespace around assignment operator '=' in assignment expression
+#CHECK1: ADDITIONAL_INPUT3= 0x600df00d;
+
+#CHECK2: Error: {{.*}}script2.t:1: missing whitespace around assignment operator '=' in assignment expression
+#CHECK2: ADDITIONAL_INPUT4 =0x600df00d;
+
+#CHECK3: Error: {{.*}}script3.t:3: missing whitespace around assignment operator '=' in assignment expression
+#CHECK3: . =0x800;
+
+#CHECK4: Error: {{.*}}script4.t:1: missing whitespace around assignment operator '+=' in assignment expression
+#CHECK4: ADDITIONAL_INPUT5 +=0x600df00d;

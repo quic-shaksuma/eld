@@ -110,11 +110,10 @@ bool ScriptParser::readAssignment(llvm::StringRef Tok) {
     consume(";");
     return true;
   }
+  isValidAssignment(Tok);
   bool Ret = false;
   StringRef Op = peek(LexState::Expr);
-  if (Op.starts_with("=") ||
-      (Op.size() == 2 && Op[1] == '=' && strchr("*/+-&|^", Op[0])) ||
-      Op == "<<=" || Op == ">>=") {
+  if (isAssignmentOperator(Op)) {
     Ret = readSymbolAssignment(Tok);
   } else if (Tok == "PROVIDE" || Tok == "HIDDEN" || Tok == "PROVIDE_HIDDEN") {
     readProvideHidden(Tok);
@@ -470,13 +469,49 @@ bool ScriptParser::isValidSymbolName(StringRef S) {
   return !S.empty() && !isDigit(S[0]) && llvm::all_of(S, Valid);
 }
 
+bool ScriptParser::hasSpaceAroundOp(StringRef line, StringRef op) {
+  size_t pos = 0;
+  while ((pos = line.find(op, pos)) != StringRef::npos) {
+    size_t opStart = pos;
+    size_t opEnd = pos + op.size();
+    if (opStart == 0 || opEnd >= line.size())
+        return false;
+    if (line[opStart - 1] != ' ' || line[opEnd] != ' ')
+        return false;
+    pos = opEnd;
+  }
+  return true;
+}
+
+bool ScriptParser::isAssignmentOperator(StringRef Op) const {
+  for (StringRef AssignmentOp : AssignmentOps)
+    if (AssignmentOp == Op)
+      return true;
+  return false;
+}
+
+bool ScriptParser::isValidAssignment(llvm::StringRef Tok) {
+  StringRef line = getLine();
+  for (StringRef Op : AssignmentOps) {
+    if (line.contains(Op)) {
+      if (InMemoryCmd)
+        continue;
+      if (!hasSpaceAroundOp(line, Op)) {
+        setError(Twine("missing whitespace around assignment operator '") + Op +
+        "' in assignment expression");
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 bool ScriptParser::readSymbolAssignment(StringRef Tok,
                                         Assignment::Type AssignType) {
   StringRef Name = unquote(Tok);
   StringRef Op = next(LexState::Expr);
 
-  assert(Op == "=" || Op == "*=" || Op == "/=" || Op == "+=" || Op == "-=" ||
-         Op == "&=" || Op == "|=" || Op == "^=" || Op == "<<=" || Op == ">>=");
+  assert(isAssignmentOperator(Op));
   // Note: GNU ld does not support %=.
   Expression *E = readExpr();
   Module &Module = ThisScriptFile.module();
@@ -1130,6 +1165,7 @@ void ScriptParser::readOutputArch() {
 }
 
 void ScriptParser::readMemory() {
+  llvm::SaveAndRestore<bool> SaveInMemoryCmd(InMemoryCmd, true);
   expect("{");
   while (peek() != "}" && !atEOF()) {
     llvm::StringRef Tok = next();
