@@ -44,8 +44,6 @@ OutputSectDesc::OutputSectDesc(const std::string &PName)
   OutputSectDescEpilog.FillExpression = nullptr;
 }
 
-
-
 void OutputSectDesc::dump(llvm::raw_ostream &Outs) const {
   Outs << Name << "\t";
 
@@ -285,6 +283,15 @@ eld::Expected<void> OutputSectDesc::activate(Module &CurModule) {
   // Assignment in an output section
   OutputSectCmds Assignments;
   const LinkerScript &Script = CurModule.getLinkerScript();
+
+  if (OutputSectDescEpilog.hasPhdrs() && !Script.phdrsSpecified()) {
+    for (const auto &PhdrNameToken : OutputSectDescEpilog.phdrs()->tokens()) {
+      return std::make_unique<plugin::DiagnosticEntry>(
+          plugin::DiagnosticEntry(Diag::error_phdrs_not_specified_ldscript,
+                                  {getContext(), Name, PhdrNameToken->name()}));
+    }
+  }
+
   if (OutputSectDescEpilog.OutputSectionMemoryRegion) {
     eld::Expected<eld::ScriptMemoryRegion *> MemRegion = Script.getMemoryRegion(
         OutputSectDescEpilog.OutputSectionMemoryRegion->name(), getContext());
