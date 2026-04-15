@@ -71,6 +71,45 @@
       return ((typeof globalThis[build_name.toLowerCase()+'_build_states'] == 'undefined') || (!globalThis[build_name.toLowerCase()+'_build_states'].length));
     }
 
+    function getLatestRunState(buildStates) {
+      if (!buildStates || !buildStates.length) {
+        return null;
+      }
+
+      const latestRun = buildStates[buildStates.length - 1];
+      if (!latestRun || typeof latestRun.run_id === 'undefined') {
+        return latestRun ? latestRun.state : null;
+      }
+
+      const latestRunStates = buildStates.filter(build => build.run_id == latestRun.run_id);
+      if (!latestRunStates.length) {
+        return null;
+      }
+
+      if (latestRunStates.every(build => build.state == 'pass')) {
+        return 'pass';
+      }
+      if (latestRunStates.some(build => build.state == 'fail')) {
+        return 'fail';
+      }
+
+      return null;
+    }
+
+    function updateStatusIndicators(buildStates, greenSelector, redSelector) {
+      const latestRunState = getLatestRunState(buildStates);
+      if (latestRunState == 'pass') {
+        $(greenSelector).show();
+        $(redSelector).hide();
+      } else if (latestRunState == 'fail') {
+        $(greenSelector).hide();
+        $(redSelector).show();
+      } else {
+        $(greenSelector).hide();
+        $(redSelector).hide();
+      }
+    }
+
     // Hide charts that have no data.
     var childDivs = $('#all-builds-div').children('div');
     let data_found = false;
@@ -91,20 +130,7 @@
   <script>
   $('#page-title').click(function() { window.location.reload(); });
   const pico = document.getElementById("picolibcPie");
-  const lastPicoBuild = picolibc_build_states[picolibc_build_states.length - 1];
-  if (lastPicoBuild) {
-      if(lastPicoBuild.state == 'pass') {
-        $("#picolibc_green").show();
-        $("#picolibc_red").hide();
-      }
-      else if(lastPicoBuild.state == 'fail') {
-        $("#picolibc_green").hide();
-        $("#picolibc_red").show();
-      }
-  } else {
-    $("#picolibc_green").hide();
-    $("#picolibc_red").hide();
-  }
+  updateStatusIndicators(picolibc_build_states, "#picolibc_green", "#picolibc_red");
   let pico_passes = 0;
   let pico_fails = 0;
   picolibc_build_states.forEach(function(value, key) {
@@ -143,20 +169,7 @@
 
   <script>
   const musl = document.getElementById("muslPie");
-  const lastMUSLBuild = musl_build_states[musl_build_states.length - 1];
-  if (lastMUSLBuild) {
-      if(lastMUSLBuild.state == 'pass') {
-        $("#musl_green").show();
-        $("#musl_red").hide();
-      }
-      else if(lastMUSLBuild.state == 'fail') {
-        $("#musl_green").hide();
-        $("#musl_red").show();
-      }
-  } else {
-    $("#musl_green").hide();
-    $("#musl_red").hide();
-  }
+  updateStatusIndicators(musl_build_states, "#musl_green", "#musl_red");
   let musl_passes = 0;
   let musl_fails = 0;
   musl_build_states.forEach(function(value, key) {
@@ -195,20 +208,7 @@
 
   <script>
   const sanitizer = document.getElementById("sanitizerPie");
-  const lastSanitizerBuild = sanitizer_build_states[sanitizer_build_states.length - 1];
-  if (lastSanitizerBuild) {
-      if(lastSanitizerBuild.state == 'pass') {
-        $("#sanitizer_green").show();
-        $("#sanitizer_red").hide();
-      }
-      else if(lastSanitizerBuild.state == 'fail') {
-        $("#sanitizer_green").hide();
-        $("#sanitizer_red").show();
-      }
-  } else {
-    $("#sanitizer_green").hide();
-    $("#sanitizer_red").hide();
-  }
+  updateStatusIndicators(sanitizer_build_states, "#sanitizer_green", "#sanitizer_red");
   let sanitizer_passes = 0;
   let sanitizer_fails = 0;
   sanitizer_build_states.forEach(function(value, key) {
@@ -247,20 +247,7 @@
 
   <script>
   const nightly = document.getElementById("nightlyPie");
-  const lastNightlyBuild = nightly_build_states[nightly_build_states.length - 1];
-  if (lastNightlyBuild) {
-      if(lastNightlyBuild.state == 'pass') {
-        $("#nightly_green").show();
-        $("#nightly_red").hide();
-      }
-      else if(lastNightlyBuild.state == 'fail') {
-        $("#nightly_green").hide();
-        $("#nightly_red").show();
-      }
-  } else {
-    $("#nightly_green").hide();
-    $("#nightly_red").hide();
-  }
+  updateStatusIndicators(nightly_build_states, "#nightly_green", "#nightly_red");
   let nightly_passes = 0;
   let nightly_fails = 0;
   nightly_build_states.forEach(function(value, key) {
@@ -299,20 +286,7 @@
 
   <script>
   const reverseIterator = document.getElementById("reverseIteratorPie");
-  const lastReverseIteratorBuild = reverse_iterator_build_states[reverse_iterator_build_states.length - 1];
-  if (lastReverseIteratorBuild) {
-      if(lastReverseIteratorBuild.state == 'pass') {
-        $("#reverse_iterator_green").show();
-        $("#reverse_iterator_red").hide();
-      }
-      else if(lastReverseIteratorBuild.state == 'fail') {
-        $("#reverse_iterator_green").hide();
-        $("#reverse_iterator_red").show();
-      }
-  } else {
-    $("#reverse_iterator_green").hide();
-    $("#reverse_iterator_red").hide();
-  }
+  updateStatusIndicators(reverse_iterator_build_states, "#reverse_iterator_green", "#reverse_iterator_red");
   let reverse_iterator_passes = 0;
   let reverse_iterator_fails = 0;
   reverse_iterator_build_states.forEach(function(value, key) {
@@ -351,20 +325,7 @@
 
   <script>
   const release = document.getElementById("releasePie");
-  const lastReleaseBuild = release_build_states[release_build_states.length - 1];
-  if (lastReleaseBuild) {
-      if(lastReleaseBuild.state == 'pass') {
-        $("#release_green").show();
-        $("#release_red").hide();
-      }
-      else if(lastReleaseBuild.state == 'fail') {
-        $("#release_green").hide();
-        $("#release_red").show();
-      }
-  } else {
-    $("#release_green").hide();
-    $("#release_red").hide();
-  }
+  updateStatusIndicators(release_build_states, "#release_green", "#release_red");
   let release_passes = 0;
   let release_fails = 0;
   release_build_states.forEach(function(value, key) {
