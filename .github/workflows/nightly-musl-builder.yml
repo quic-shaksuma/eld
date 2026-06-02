@@ -3,7 +3,7 @@ on:
   schedule:
       - cron: '0 2 * * *' # 2:00 AM
   workflow_dispatch:     # Allows manual triggering
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
 
 
 permissions:
@@ -14,7 +14,6 @@ concurrency:
 
 jobs:
   test-musl-x86_64:
-    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
     env:
       ELD_SOURCE_DIR: llvm-project/llvm/tools/eld
@@ -28,7 +27,6 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -105,7 +103,6 @@ jobs:
           echo "Test results validated"
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -137,7 +134,6 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -214,7 +210,6 @@ jobs:
           echo "Test results validated"
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true

@@ -1,7 +1,7 @@
 name: Nightly check
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  pull_request: {} # Uncomment only to test this WF file update.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch: {}
@@ -11,7 +11,6 @@ permissions:
   contents: write
 jobs:
   build-and-runtest-nightly:
-    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
 
     steps:
@@ -74,7 +73,6 @@ jobs:
             nightly-ccache-${{ runner.os }}-
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -255,7 +253,6 @@ jobs:
           ninja -j8 check-eld
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
