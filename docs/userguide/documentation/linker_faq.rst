@@ -1323,7 +1323,8 @@ If any object file differs, the linker cannot interpret it correctly and will
 produce this error.
 
 **How to verify:** You can inspect the object file using by using tools like
-llvm-readelf.
+llvm-readelf. You can enable/disable this message by using the
+*--[no-]warn-mismatch* flag.
 
 Input File to Linker
 =====================
