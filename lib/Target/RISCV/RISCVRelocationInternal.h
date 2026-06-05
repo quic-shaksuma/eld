@@ -66,13 +66,13 @@ enum : uint32_t {
     added to the nonstandard ID to get the internal ID.
   */
   FirstInternalRelocation = 320,
-  LastInternalRelocation = 323,
+  LastInternalRelocation = 325,
 
-  /* 'QUALCOMM' vendor relocations: 192-195 are represented by 320-323 */
+  /* 'QUALCOMM' vendor relocations: 192-197 are represented by 320-325 */
   FirstQUALCOMMVendorRelocation = 320,
-  LastQUALCOMMVendorRelocation = 323,
-  QUALCOMMVendorRelocationOffset =
-      FirstQUALCOMMVendorRelocation - FirstNonstandardRelocation,
+  LastQUALCOMMVendorRelocation = 325,
+  QUALCOMMVendorRelocationOffset = FirstQUALCOMMVendorRelocation -
+      FirstNonstandardRelocation,
 
   /* We don't support ANDES and CHERIOT1 vendor relocations */
   ANDESVendorRelocationOffset = 0,
