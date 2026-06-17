@@ -1,7 +1,7 @@
 name: Nightly check
 
 on:
-  # pull_request: {} # Uncomment only to test this WF file update.
+  # pull_request: {} # Uncomment to build ELD PR branch.
   schedule:
     - cron: '0 7 * * *'  # Runs daily at 1:00 AM CST
   workflow_dispatch: {}
@@ -13,6 +13,11 @@ jobs:
   build-and-runtest-nightly:
     if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
+
+    env:
+      BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+      ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+      ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
     steps:
       - name: Set up Clang 22
@@ -53,13 +58,25 @@ jobs:
         with:
           repository: llvm/llvm-project
           path: llvm-project
-          ref: main
+          ref: ${{ env.BASE_BRANCH_NAME }}
+
+      - name: Log PR branch info
+        if: github.event_name == 'pull_request'
+        env:
+          PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          echo "::notice::Building pull request branch '${PR_HEAD_REF}' from repository '${PR_HEAD_REPO}'"
+          echo "::notice::Using base branch '${PR_BASE_REF}' for llvm-project checkout"
 
       - name: Checkout eld
         uses: actions/checkout@v6
         with:
           path: llvm-project/llvm/tools/eld
-          ref: main
+          repository: ${{ env.ELD_REPO }}
+          ref: ${{ env.ELD_REF }}
+          fetch-depth: 0
 
       - name: Configure workflow environment variables
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
