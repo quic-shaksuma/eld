@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      BASE_BRANCH_NAME: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref || github.ref_name }}
+      BASE_BRANCH_NAME: ${{ github.event.pull_request.base.ref }}
       ELD_REPO: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
       ELD_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}
 
