@@ -75,8 +75,7 @@ void RISCVTableJumpFragment::scanTableJumpEntries(ELFSection &Sec) {
         R->type() != eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT)
       continue;
 
-    if (I + 1 >= Relocs.size() ||
-        Relocs[I + 1]->type() != llvm::ELF::R_RISCV_RELAX)
+    if (!Backend.hasRelax(*R))
       continue;
 
     if (R->type() == eld::ELF::riscv::internal::R_RISCV_QC_E_CALL_PLT &&
