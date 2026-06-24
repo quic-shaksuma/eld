@@ -11,7 +11,6 @@ permissions:
   contents: write
 jobs:
   build-and-runtest-nightly:
-    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
 
     env:
@@ -91,7 +90,6 @@ jobs:
             nightly-ccache-${{ runner.os }}-
 
       - name: Record pre-build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -278,7 +276,6 @@ jobs:
           ninja check-eld-summary
 
       - name: Update build entry
-        if: github.event_name == 'schedule'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
