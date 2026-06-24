@@ -113,19 +113,19 @@ if(LLVM_ENABLE_SPHINX)
 
     set(pdf_target_name docs-eld-userguide-pdf)
     set(ELD_USERGUIDE_SINGLEHTML_DIR ${CMAKE_CURRENT_BINARY_DIR}/singlehtml)
+    set(ELD_USERGUIDE_PDF_DIR ${CMAKE_CURRENT_BINARY_DIR}/pdf)
     set(ELD_USERGUIDE_HTML_DIR ${CMAKE_CURRENT_BINARY_DIR}/html)
     set(ELD_USERGUIDE_TYPST ${ELD_USERGUIDE_SINGLEHTML_DIR}/ELD_UserGuide.typ)
-    set(ELD_USERGUIDE_SINGLEHTML_PDF
-        ${ELD_USERGUIDE_SINGLEHTML_DIR}/ELD_UserGuide.pdf)
+    set(ELD_USERGUIDE_PDF ${ELD_USERGUIDE_PDF_DIR}/ELD_UserGuide.pdf)
     set(ELD_USERGUIDE_HTML_PDF ${ELD_USERGUIDE_HTML_DIR}/ELD_UserGuide.pdf)
 
     add_custom_command(
-      OUTPUT ${ELD_USERGUIDE_SINGLEHTML_PDF} ${ELD_USERGUIDE_HTML_PDF}
+      OUTPUT ${ELD_USERGUIDE_PDF} ${ELD_USERGUIDE_HTML_PDF}
       COMMAND
         ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/GenerateTypstPDF.py
         ${ELD_USERGUIDE_SINGLEHTML_DIR}/index.html ${ELD_USERGUIDE_TYPST}
-        --pdf-output ${ELD_USERGUIDE_SINGLEHTML_PDF}
+        --pdf-output ${ELD_USERGUIDE_PDF}
         --root ${ELD_USERGUIDE_SINGLEHTML_DIR}
         --title "ELD User Guide"
         --author "Qualcomm Technologies, Inc."
@@ -134,7 +134,7 @@ if(LLVM_ENABLE_SPHINX)
       # Keep the generated PDF next to the HTML documentation for install and
       # packaging flows that already consume the Sphinx html output directory.
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-              ${ELD_USERGUIDE_SINGLEHTML_PDF} ${ELD_USERGUIDE_HTML_PDF}
+              ${ELD_USERGUIDE_PDF} ${ELD_USERGUIDE_HTML_PDF}
       DEPENDS ${singlehtml_target_name}
               ${CMAKE_CURRENT_SOURCE_DIR}/GenerateTypstPDF.py
       COMMENT

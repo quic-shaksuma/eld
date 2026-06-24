@@ -10,11 +10,15 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
+import io
 import pathlib
 import re
 import subprocess
 
 from lxml import html
+from PIL import Image
 
 
 BLOCK_TAGS = {
@@ -74,6 +78,11 @@ MAX_IMAGE_HEIGHT_PT = MAX_IMAGE_HEIGHT_IN * 72
 ADMONITION_TITLES = {
     "admonition-title",
 }
+EMBEDDED_GIF_DATA_RE = re.compile(
+    r'(?P<attr>(?:xlink:)?href=)(?P<quote>["\'])'
+    r'(?P<data_url>data:image/gif;base64,(?P<encoded>[^"\']+))(?P=quote)'
+)
+GIF_BACKGROUND_RGBA = (255, 255, 255, 255)
 
 
 def typst_string(text: str) -> str:
@@ -119,6 +128,7 @@ def is_skipped(element) -> bool:
 class TypstConverter:
     def __init__(self, input_html: pathlib.Path):
         self.input_html = input_html
+        self._pdf_safe_gif_data_urls: dict[str, str] = {}
 
     def svg_dimensions(self, source: str) -> tuple[float, float] | None:
         if not source.endswith(".svg"):
@@ -150,6 +160,64 @@ class TypstConverter:
         if height * width_scale > MAX_IMAGE_HEIGHT_PT:
             return f", height: {MAX_IMAGE_HEIGHT_IN}in"
         return ", width: 100%"
+
+    def pdf_safe_gif_data_url(self, encoded_image: str) -> str:
+        data_url = self._pdf_safe_gif_data_urls.get(encoded_image)
+        if data_url is not None:
+            return data_url
+
+        try:
+            image_bytes = base64.b64decode(encoded_image, validate=True)
+        except (binascii.Error, ValueError) as error:
+            raise RuntimeError("Could not decode embedded image data") from error
+
+        try:
+            with Image.open(io.BytesIO(image_bytes)) as image:
+                image.seek(0)
+                frame = image.convert("RGBA")
+        except Exception as error:
+            raise RuntimeError("Could not convert embedded GIF image to JPEG") from error
+
+        background = Image.new("RGBA", frame.size, GIF_BACKGROUND_RGBA)
+        background.alpha_composite(frame)
+        output = io.BytesIO()
+        background.convert("RGB").save(output, format="JPEG")
+
+        encoded_jpeg = base64.b64encode(output.getvalue()).decode("ascii")
+        data_url = f"data:image/jpeg;base64,{encoded_jpeg}"
+        self._pdf_safe_gif_data_urls[encoded_image] = data_url
+        return data_url
+
+    def pdf_safe_image_source(self, source: str) -> str:
+        if not source.endswith(".svg"):
+            return source
+
+        source_path = (self.input_html.parent / source).resolve()
+        if not source_path.is_file():
+            return source
+
+        svg = source_path.read_text(encoding="utf-8", errors="ignore")
+        if "data:image/gif;base64" not in svg:
+            return source
+
+        def replace_gif(match: re.Match[str]) -> str:
+            data_url = self.pdf_safe_gif_data_url(match.group("encoded"))
+            return (
+                f"{match.group('attr')}{match.group('quote')}"
+                f"{data_url}{match.group('quote')}"
+            )
+
+        pdf_safe_svg = EMBEDDED_GIF_DATA_RE.sub(
+            replace_gif,
+            svg,
+        )
+        output_path = source_path.with_name(f"{source_path.stem}_pdf{source_path.suffix}")
+        if not output_path.is_file() or output_path.read_text(
+            encoding="utf-8", errors="ignore"
+        ) != pdf_safe_svg:
+            output_path.write_text(pdf_safe_svg, encoding="utf-8")
+
+        return output_path.relative_to(self.input_html.parent).as_posix()
 
     def child_inline(self, element) -> str:
         parts = []
@@ -402,11 +470,13 @@ class TypstConverter:
         return f"#pagebreak()\n{body}\n" if body else ""
 
     def image(self, source: str) -> str:
+        source = self.pdf_safe_image_source(source)
         return f"#image({typst_string(source)}{self.image_options(source)})"
 
     def figure(self, source: str | None) -> str:
         if not source:
             return ""
+        source = self.pdf_safe_image_source(source)
         return f"#figure(image({typst_string(source)}{self.image_options(source)}))\n\n"
 
     def raw_block(self, text: str) -> str:

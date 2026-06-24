@@ -12,6 +12,9 @@ on:
 permissions:
   contents: write
 
+env:
+  D2_VERSION: v0.7.1
+
 jobs:
   build-docs-and-deploy:
     runs-on: ubuntu-latest
@@ -47,6 +50,21 @@ jobs:
           sudo apt-get install -y graphviz doxygen ninja-build
           pip install -r llvm-project/llvm/tools/eld/docs/userguide/requirements.txt
 
+      - name: Install D2
+        run: |
+          curl -fsSL https://d2lang.com/install.sh | sh -s -- \
+            --method=standalone \
+            --prefix "$HOME/.local" \
+            --version "$D2_VERSION"
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          d2 --version
+
+      - name: Validate D2 diagrams
+        run: |
+          find llvm-project/llvm/tools/eld/docs/userguide/documentation/images \
+            -type f -name '*.d2' -exec d2 validate {} \;
+
       - name: Configure CMake
         run: |
           cmake -G Ninja -B build \
@@ -69,8 +87,8 @@ jobs:
 
       - name: Preserve existing content (dashboard)
         run: |
-          if [ -d dash ]; then
-            cp -r dash build/tools/eld/docs/multiversion/site/main
+          if [ -d docs-branch/dash ]; then
+            cp -r docs-branch/dash build/tools/eld/docs/multiversion/site/main
             echo "Preserved dashboard from documentation branch"
           fi
 
