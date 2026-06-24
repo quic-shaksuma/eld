@@ -12,9 +12,11 @@ on:
 permissions:
   contents: write
 
+env:
+  D2_VERSION: v0.7.1
+
 jobs:
   generate-docs:
-    if: github.repository == 'qualcomm/eld'
     runs-on: ubuntu-latest
 
     steps:
@@ -41,8 +43,24 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update
           sudo apt-get install -y graphviz doxygen libxml2 libxml2-dev libxslt1-dev
           pip install -r llvm-project/llvm/tools/eld/docs/userguide/requirements.txt
+
+      - name: Install D2
+        run: |
+          curl -fsSL https://d2lang.com/install.sh | sh -s -- \
+            --method=standalone \
+            --prefix "$HOME/.local" \
+            --version "$D2_VERSION"
+          export PATH="$HOME/.local/bin:$PATH"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          d2 --version
+
+      - name: Validate D2 diagrams
+        run: |
+          find llvm-project/llvm/tools/eld/docs/userguide/documentation/images \
+            -type f -name '*.d2' -exec d2 validate {} \;
 
       - name: Run CMake
         run: |
