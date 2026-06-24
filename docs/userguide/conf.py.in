@@ -16,6 +16,7 @@ from pathlib import Path
 THIS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = (THIS_DIR / ".." / "..").resolve()
 
+sys.path.insert(0, str(THIS_DIR))
 sys.path.insert(0, str(REPO_ROOT))
 
 
@@ -26,7 +27,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.todo",
     "sphinx.ext.ifconfig",
-    "sphinx.ext.graphviz",
+    "sphinxext_d2",
 ]
 
 _BREATHE_XML_DIR = os.environ.get("ELD_BREATHE_XML_DIR")
@@ -75,9 +76,9 @@ html_meta = {
     ),
 }
 
-# Graphviz configuration
-graphviz_dot = "/usr/bin/dot"
-graphviz_output_format = "svg"
+# D2 diagram configuration
+d2_executable = "d2"
+d2_layout = "elk"
 
 def _read_env_breathe_projects() -> dict[str, str]:
     """
