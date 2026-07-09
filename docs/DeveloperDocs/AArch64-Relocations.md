@@ -17,9 +17,9 @@ AArch64 relocation operators such as `:abs_g0_nc:`, `:pg_hi21:`, and `:lo12:` in
 
 ---
 
-# Group Relocations
+## Group Relocations
 
-## Unsigned Absolute Relocations
+### Unsigned Absolute Relocations
 
 | Operator | Relocation | Operation | Inst | Bits | Range Check |
 |-----------|------------|------------|------|------|-------------|
@@ -31,7 +31,7 @@ AArch64 relocation operators such as `:abs_g0_nc:`, `:pg_hi21:`, and `:lo12:` in
 | `:abs_g2_nc:` | `MOVW_UABS_G2_NC` | `S + A` | `movk` | `[47:32]` | none |
 | `:abs_g3:` | `MOVW_UABS_G3` | `S + A` | `movz/movk` | `[63:48]` | none |
 
-## Signed Absolute Relocations
+### Signed Absolute Relocations
 
 | Operator | Relocation | Operation | Inst | Bits | Range Check |
 |-----------|------------|------------|------|------|-------------|
@@ -39,7 +39,7 @@ AArch64 relocation operators such as `:abs_g0_nc:`, `:pg_hi21:`, and `:lo12:` in
 | `:abs_g1_s:` | `MOVW_SABS_G1` | `S + A` | `movz/movn` | `[31:16]` | `-2^32 <= X < 2^32` |
 | `:abs_g2_s:` | `MOVW_SABS_G2` | `S + A` | `movz/movn` | `[47:32]` | `-2^48 <= X < 2^48` |
 
-## Example: Building a 64-bit Constant
+### Example: Building a 64-bit Constant
 
 ```asm
 movz x1, #:abs_g3:u64
@@ -50,7 +50,7 @@ movk x1, #:abs_g0_nc:u64
 
 ---
 
-# PC-Relative Address Relocations
+## PC-Relative Address Relocations
 
 | Operator | Relocation | Expression | Instruction | Encoded Bits | Range Check | Alignment |
 |-----------|------------|------------|-------------|--------------|-------------|-----------|
@@ -63,7 +63,7 @@ movk x1, #:abs_g0_nc:u64
 > literals; `X` (`S+A-P`) must therefore be divisible by 4. The linker encodes `X >> 2`
 > into the 19-bit field and emits a warning if `X & 3 != 0`.
 
-## Typical ADRP + ADD Sequence
+### Typical ADRP + ADD Sequence
 
 ```asm
 adrp x0, :pg_hi21:foo
@@ -72,7 +72,7 @@ add  x0, x0, #:lo12:foo
 
 ---
 
-# Low 12-bit Relocations
+## Low 12-bit Relocations
 
 | Operator | Relocation | Used By | Immediate Extracted |
 |-----------|------------|----------|--------------------|
@@ -85,7 +85,7 @@ add  x0, x0, #:lo12:foo
 
 ---
 
-# Control Flow Relocations
+## Control Flow Relocations
 
 | Relocation | Instruction | Expression | Encoded Bits | Reach | Alignment | Out-of-range |
 |------------|-------------|------------|--------------|-------|-----------|--------------|
@@ -103,7 +103,7 @@ add  x0, x0, #:lo12:foo
 
 ---
 
-# Common Prefix Cheat Sheet
+## Common Prefix Cheat Sheet
 
 | Prefix | Meaning |
 |----------|---------|
@@ -119,7 +119,7 @@ add  x0, x0, #:lo12:foo
 
 ---
 
-# Large Memory Model Relocations
+## Large Memory Model Relocations
 
 The small and medium code models typically use ADRP+ADD sequences and are limited by the reach of ADRP. Large memory models use MOVZ/MOVK relocation sequences to construct arbitrary 64-bit addresses.
 
@@ -133,7 +133,7 @@ The small and medium code models typically use ADRP+ADD sequences and are limite
 | `R_AARCH64_MOVW_UABS_G2_NC` | `:abs_g2_nc:` | `movk` | [47:32] | none |
 | `R_AARCH64_MOVW_UABS_G3` | `:abs_g3:` | `movz/movk` | [63:48] | none |
 
-## Example
+### Example
 
 ```asm
 movz x0, #:abs_g3:foo
@@ -151,7 +151,7 @@ R_AARCH64_MOVW_UABS_G1_NC
 R_AARCH64_MOVW_UABS_G0_NC
 ```
 
-## GOT-Based Large Model Relocations
+### GOT-Based Large Model Relocations
 
 | Relocation | Purpose |
 |------------|---------|
@@ -160,7 +160,7 @@ R_AARCH64_MOVW_UABS_G0_NC
 | `R_AARCH64_GLOB_DAT` | Dynamic linker fills GOT entry |
 | `R_AARCH64_JUMP_SLOT` | PLT/GOT function resolution |
 
-## Reach Comparison
+### Reach Comparison
 
 | Scheme | Reach |
 |---------|---------|
@@ -172,9 +172,9 @@ R_AARCH64_MOVW_UABS_G0_NC
 
 ---
 
-# AArch64 Code Models
+## AArch64 Code Models
 
-## Small Code Model
+### Small Code Model
 
 Assumptions:
 - Code and static data are reachable using PC-relative addressing.
@@ -198,7 +198,7 @@ adrp x0, :pg_hi21:global
 add  x0, x0, #:lo12:global
 ```
 
-## Medium Code Model
+### Medium Code Model
 
 Assumptions:
 - Code remains reachable through branch relocations.
@@ -221,7 +221,7 @@ adrp x0, :got:symbol
 ldr  x0, [x0, #:got_lo12:symbol]
 ```
 
-## Large Code Model
+### Large Code Model
 
 Assumptions:
 - Code and data may be located anywhere in the 64-bit address space.
@@ -251,20 +251,20 @@ movk x0, #:abs_g0_nc:symbol
 
 ---
 
-# References
+## References
 
-## Official AArch64 ELF ABI Specification
+### Official AArch64 ELF ABI Specification
 
-### Current Source (GitHub)
+#### Current Source (GitHub)
 
 - ELF for the Arm® 64-bit Architecture (AArch64)
   - https://github.com/ARM-software/abi-aa/blob/main/aaelf64/aaelf64.rst
 
-### AAELF64 Repository Directory
+#### AAELF64 Repository Directory
 
 - https://github.com/ARM-software/abi-aa/tree/main/aaelf64
 
-## Recommended Sections
+### Recommended Sections
 
 When implementing linker relocations, the most useful sections are:
 
