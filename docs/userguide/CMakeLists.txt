@@ -138,13 +138,12 @@ if(LLVM_ENABLE_SPHINX)
       # packaging flows that already consume the Sphinx html output directory.
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
               ${ELD_USERGUIDE_PDF} ${ELD_USERGUIDE_HTML_PDF}
-      DEPENDS ${singlehtml_target_name}
-              ${CMAKE_CURRENT_SOURCE_DIR}/GenerateTypstPDF.py
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/GenerateTypstPDF.py
       COMMENT
         "Generating Typst PDF documentation for eld-userguide into \"${ELD_USERGUIDE_HTML_PDF}\"")
 
     add_custom_target(${pdf_target_name} DEPENDS ${ELD_USERGUIDE_HTML_PDF})
-    add_dependencies(${pdf_target_name} ${singlehtml_target_name})
+    add_dependencies(${pdf_target_name} ${singlehtml_target_name} ${html_target_name})
     add_dependencies(eld-docs ${pdf_target_name})
   endif()
 endif()
