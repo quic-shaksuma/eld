@@ -19,6 +19,12 @@ import subprocess
 
 from lxml import html
 from PIL import Image
+from pygments import highlight
+from pygments.formatter import Formatter
+from pygments.lexers import get_lexer_by_name, guess_lexer
+from pygments.styles import get_style_by_name
+from pygments.token import STANDARD_TYPES, Token
+from pygments.util import ClassNotFound
 
 
 BLOCK_TAGS = {
@@ -85,6 +91,17 @@ EMBEDDED_GIF_DATA_RE = re.compile(
 GIF_BACKGROUND_RGBA = (255, 255, 255, 255)
 PDF_LABEL_ATTR = "data-eld-pdf-labels"
 INDEX_REFERENCE_RE = re.compile(r"^\[\d+\]$")
+PYGMENTS_DEFAULT_STYLE = get_style_by_name("default")
+# Sphinx/Pygments HTML output annotates tokens with compact CSS class names,
+# such as ``k`` for keywords and ``s`` for strings. Reverse Pygments'
+# STANDARD_TYPES mapping so the converter can recover the original token type
+# from an already-highlighted ``<span class="...">`` node instead of lexing the
+# code a second time.
+PYGMENTS_CLASS_TOKENS = {
+    class_name: token
+    for token, class_name in STANDARD_TYPES.items()
+    if class_name
+}
 
 
 def typst_string(text: str) -> str:
@@ -109,6 +126,47 @@ def escape_text(text: str) -> str:
 
 def clean_text(text: str) -> str:
     return re.sub(r"\s+", " ", text.replace("\xa0", " ")).strip()
+
+
+def typst_code_style(style: dict[str, str]) -> str:
+    # ``style_for_token`` returns a full Pygments style dictionary, but Typst
+    # only needs the pieces that affect code highlighting in this template.
+    # Convert the supported attributes to a composable ``#text(...)`` wrapper
+    # and leave unsupported options (for example underlines or borders) out so
+    # generated Typst stays simple and predictable.
+    options = []
+    if style["color"]:
+        options.append(f'fill: rgb("#{style["color"]}")')
+    if style["bold"]:
+        options.append('weight: "bold"')
+    if style["italic"]:
+        options.append('style: "italic"')
+    return f"#text({', '.join(options)})" if options else ""
+
+
+def typst_code_token(text: str, token_type=Token.Text) -> str:
+    if not text:
+        return ""
+    # Emit code as Typst raw text to preserve whitespace and punctuation
+    # exactly. When the Pygments token has visual attributes, wrap that raw
+    # fragment in a text style; otherwise return the raw fragment directly to
+    # avoid producing unnecessary nested markup for plain text tokens.
+    style = typst_code_style(PYGMENTS_DEFAULT_STYLE.style_for_token(token_type))
+    raw = f"#raw({typst_string(text)})"
+    return f"{style}[{raw}]" if style else raw
+
+
+class TypstPygmentsFormatter(Formatter):
+    def __init__(self, **options):
+        super().__init__(style=PYGMENTS_DEFAULT_STYLE, **options)
+
+    def format_unencoded(self, tokensource, outfile) -> None:
+        # Pygments formatters normally emit HTML, LaTeX, or terminal escapes.
+        # This custom formatter writes Typst fragments directly, one raw code
+        # token at a time, so fallback lexing can share the exact same Typst
+        # styling path as tokens recovered from Sphinx-generated HTML spans.
+        for token_type, value in tokensource:
+            outfile.write(typst_code_token(value, token_type))
 
 
 def parse_svg_length(value: str | None) -> float | None:
@@ -469,7 +527,7 @@ class TypstConverter:
             content = self.child_inline(element).strip()
             return f"{anchors}{content}\n\n" if content else anchors
         if tag == "pre":
-            return anchors + self.raw_block(element.text_content())
+            return anchors + self.raw_block(element)
         if tag == "blockquote":
             body = self.child_blocks(element).strip()
             return f"{anchors}#quote(block: true)[\n{body}\n]\n\n" if body else anchors
@@ -538,6 +596,7 @@ class TypstConverter:
             if child.tag.lower() == "dt":
                 anchors = self.label_anchors(child, block=True)
                 term = self.child_inline(child).strip() or escape_text(clean_text(child.text_content()))
+                term = re.sub(r"(?:\\\s*)+$", "", term).strip()
                 output.append(f"{anchors}#strong[{term}]\n")
                 if child_index + 1 < len(children) and children[child_index + 1].tag.lower() == "dd":
                     description = self.child_blocks(children[child_index + 1]).strip()
@@ -663,13 +722,76 @@ class TypstConverter:
         source = self.pdf_safe_image_source(source)
         return f"#figure(image({typst_string(source)}{self.image_options(source)}))\n\n"
 
-    def raw_block(self, text: str) -> str:
+    def pygments_language(self, element) -> str | None:
+        # Sphinx stores the requested lexer on an ancestor of ``pre`` using a
+        # class such as ``highlight-python``. Walk upward from the code block so
+        # this also works when the actual text is nested in ``code`` or ``span``
+        # elements. Generic classes intentionally return ``None`` so Pygments
+        # can guess a lexer from the raw text instead of forcing plain text.
+        current = element
+        while current is not None and hasattr(current, "tag"):
+            for class_name in (current.get("class") or "").split():
+                if not class_name.startswith("highlight-"):
+                    continue
+                language = class_name.removeprefix("highlight-")
+                if language not in {"default", "none", "text"}:
+                    return language
+            current = current.getparent()
+        return None
+
+    def pygments_token_type(self, element, default=Token.Text):
+        # Already-highlighted Sphinx HTML contains nested spans with Pygments
+        # CSS classes. If a child span has no recognized class, inherit the
+        # parent token type so nested markup does not accidentally drop syntax
+        # coloring for its contained text.
+        for class_name in (element.get("class") or "").split():
+            token_type = PYGMENTS_CLASS_TOKENS.get(class_name)
+            if token_type is not None:
+                return token_type
+        return default
+
+    def highlighted_html_code(self, element, token_type=Token.Text) -> str:
+        # Prefer the tokenization Sphinx already generated in HTML. Recursing
+        # over text, children, and tails preserves the original code order while
+        # mapping each span's Pygments class back to a Typst-styled raw token.
+        output = []
+        if element.text:
+            output.append(typst_code_token(element.text, token_type))
+        for child in element:
+            child_token_type = self.pygments_token_type(child, token_type)
+            output.append(self.highlighted_html_code(child, child_token_type))
+            if child.tail:
+                output.append(typst_code_token(child.tail, token_type))
+        return "".join(output)
+
+    def highlighted_raw_text(self, text: str, language: str | None) -> str:
+        try:
+            # When Sphinx did not emit token spans, lex the raw text on demand.
+            # A known ``highlight-<language>`` class is used directly; otherwise
+            # Pygments guesses from the snippet. If both fail, fall back to a
+            # plain raw Typst token so PDF generation remains best-effort.
+            lexer = get_lexer_by_name(language) if language else guess_lexer(text)
+        except ClassNotFound:
+            return typst_code_token(text)
+        return highlight(text, lexer, TypstPygmentsFormatter())
+
+    def raw_block(self, element) -> str:
+        text = element.text_content()
         text = text.rstrip("\n")
         if not text:
             return ""
+        # First reuse any Sphinx/Pygments HTML spans present under the ``pre``
+        # element. Some generated pages contain plain ``pre`` blocks instead,
+        # so empty output from the HTML path triggers raw-text lexing below.
+        highlighted_code = self.highlighted_html_code(element).rstrip()
+        if not highlighted_code:
+            highlighted_code = self.highlighted_raw_text(text, self.pygments_language(element)).rstrip()
+        # Keep the outer block styling independent from token coloring: the
+        # block controls background, padding, and monospace defaults, while the
+        # inner fragments apply per-token fills and font styles.
         return (
             "#block(fill: code-bg, inset: 7pt, radius: 3pt, width: 100%)[\n"
-            f"#text(font: \"DejaVu Sans Mono\", size: 9.0pt, fill: code-text)[#raw({typst_string(text)}, block: true)]\n"
+            f"#text(font: \"DejaVu Sans Mono\", size: 9.0pt, fill: code-text)[\n{highlighted_code}\n]\n"
             "]\n\n"
         )
 
