@@ -99,6 +99,7 @@
 #include <chrono>
 #include <climits>
 #include <cstring>
+#include <limits>
 #include <map>
 #include <string>
 #include <vector>
@@ -2599,10 +2600,21 @@ bool GNULDBackend::setupProgramHdrs() {
         elfSegmentTable().getSegments(llvm::ELF::PT_TLS);
     if (!tls_segs.size())
       return true;
-    uint64_t memsz = 0;
-    for (auto &seg : tls_segs)
-      memsz += seg->memsz();
-    setTLSTemplateSize(memsz);
+    // The TLS template size is the memory span covered by all PT_TLS
+    // segments, i.e. from the lowest segment vaddr to the highest
+    // (vaddr + memsz). This must include any alignment padding *between*
+    // segments (e.g. between .tdata and an over-aligned .tbss placed in a
+    // separate PT_TLS segment). Simply summing each segment's memsz would
+    // drop that inter-segment padding and produce a TLS template size that
+    // disagrees with the runtime thread-pointer setup, corrupting every
+    // TP-relative (TPREL) relocation.
+    uint64_t lo = std::numeric_limits<uint64_t>::max();
+    uint64_t hi = 0;
+    for (auto &seg : tls_segs) {
+      lo = std::min(lo, seg->vaddr());
+      hi = std::max(hi, seg->vaddr() + seg->memsz());
+    }
+    setTLSTemplateSize(hi - lo);
   }
   return true;
 }
