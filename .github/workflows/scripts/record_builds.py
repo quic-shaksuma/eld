@@ -31,6 +31,11 @@ _build_status_db = "build-status.db"
 _build_status_db_connection = None
 
 
+# Allow hyphenated names e.g. linux-kernel
+def quote_workflow(workflow):
+    return '"' + workflow + '"'
+
+
 def close_connection():
     global _build_status_db_connection
     if _build_status_db_connection:
@@ -55,7 +60,7 @@ def createBuildDataTables(workflow):
     # Set unique constraint on run_id and architecture.
     create_table = (
         " CREATE TABLE IF NOT EXISTS "
-        + workflow
+        + quote_workflow(workflow)
         + " (build_count INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER, state TEXT, build_date TEXT, build_time TEXT, arch TEXT, branch TEXT, build_end_time TEXT, UNIQUE(run_id, arch));"
     )
     try:
@@ -71,10 +76,11 @@ def addNewBuildData(args):
     workflow_table = args.workflow_build.lower()
     conn = get_connection()
     cursor = conn.cursor()
+    workflow_table_quoted = quote_workflow(workflow_table)
     try:
         cursor.execute(
             "INSERT INTO "
-            + workflow_table
+            + workflow_table_quoted
             + " (run_id, state, build_date, build_time, arch, branch) VALUES (?, ?, ?, ?, ?, ?)",
             (
                 args.run_id,
@@ -108,10 +114,11 @@ def updateBuildData(args):
     conn = get_connection()
     cursor = conn.cursor()
     workflow_table = args.workflow_build.lower()
+    workflow_table_quoted = quote_workflow(workflow_table)
     try:
         cursor.execute(
             "UPDATE "
-            + workflow_table
+            + workflow_table_quoted
             + " SET state = ? WHERE run_id = ? AND arch = ?",
             (
                 "pass" if args.build_status else "fail",
@@ -163,11 +170,14 @@ def emitJSDataForWorkflow(workflow):
     workflow = workflow.lower()
     conn = get_connection()
     cursor = conn.cursor()
+    workflow_quoted = quote_workflow(workflow)
     all_data = []
     all_states_data = []
     try:
         cursor.execute(
-            "SELECT run_id, state, build_date, build_time, arch, branch FROM " + workflow + ";"
+            "SELECT run_id, state, build_date, build_time, arch, branch FROM "
+            + workflow_quoted
+            + ";"
         )
         all_data = cursor.fetchall()
     except Exception as e:
