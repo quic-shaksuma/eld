@@ -27,8 +27,9 @@ concurrency:
 
 jobs:
   report-failure:
-    # Only scheduled failures in eld repository are relevant. Manual,
-    # pull-request, cancelled, and skipped runs do not create issues.
+    # Only scheduled failures on the main eld repo are relevant. Manual,
+    # pull-request, cancelled, and skipped runs do not create issues, and
+    # forks should not create issues in their own copy of this workflow.
     if: >-
       github.repository == 'qualcomm/eld' &&
       github.event.workflow_run.event == 'schedule' &&
@@ -75,8 +76,7 @@ jobs:
             // timed-out runs neither re-arm nor start a failure streak.
             // Attempts of the same run are ignored because they do not
             // represent a new schedule.
-            let previousDecisiveRun;
-            for await (const response of github.paginate.iterator(
+            const workflowRuns = await github.paginate(
               github.rest.actions.listWorkflowRuns,
               {
                 ...context.repo,
@@ -85,14 +85,14 @@ jobs:
                 status: 'completed',
                 per_page: 100,
               }
-            )) {
-              previousDecisiveRun = response.data.workflow_runs.find(candidate =>
+            );
+            const previousDecisiveRun = workflowRuns
+              .filter(candidate =>
                 candidate.id !== run.id &&
                 candidate.run_number < run.run_number &&
                 ['success', 'failure'].includes(candidate.conclusion)
-              );
-              if (previousDecisiveRun) break;
-            }
+              )
+              .sort((first, second) => second.run_number - first.run_number)[0];
 
             // A failure starts a new streak only after a successful scheduled
             // run. If no earlier success or failure exists, report the first
