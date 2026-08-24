@@ -2272,3 +2272,4 @@ Mon Aug 24 12:11:40 UTC 2026 -> Add data lock for linux-kernel riscv64 build sta
 Mon Aug 24 12:31:32 UTC 2026 -> Add data lock for linux-kernel riscv32 build status data to be written
 Mon Aug 24 12:36:18 UTC 2026 -> Add data lock for linux-kernel riscv64 build status data to be written
 Mon Aug 24 12:49:36 UTC 2026 -> Add data lock for linux-kernel aarch64 build status data to be written
+Mon Aug 24 01:32:33 PM UTC 2026 -> Add data lock for zephyr riscv32 build status data to be written
