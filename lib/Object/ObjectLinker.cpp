@@ -862,8 +862,6 @@ void ObjectLinker::fixMergeStringRelocations() const {
 }
 
 void ObjectLinker::doMergeStrings() {
-  if (ThisConfig.isLinkPartial())
-    return;
   mergeIdenticalStrings();
   fixMergeStringRelocations();
 }
