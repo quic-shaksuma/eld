@@ -7,7 +7,7 @@ function normalizeBuildField(value) {
 
 function renderStatusCell(buildState) {
     const normalizedState = normalizeBuildField(buildState).toUpperCase();
-    const backgroundColor = normalizedState === 'PASS' ? 'lightgreen' : 'red';
+    const backgroundColor = normalizedState === 'PASS' ? '#59BA49' : '#EF342F';
 
     return "<td style='display: inline-block; background-color: " + backgroundColor + "; border-radius: 15px'>" + normalizedState + "</td>";
 }
