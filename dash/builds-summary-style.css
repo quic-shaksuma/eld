@@ -74,7 +74,19 @@
 }
 
 .flex-child {
-  flex: auto;
+  box-sizing: border-box;
+  flex: 0 1 400px;
+  width: min(400px, 100%);
+}
+
+.pie-chart {
+  height: 400px;
+  position: relative;
+  width: 100%;
+}
+
+.pie-chart canvas {
+  display: block;
 }
 
 .footer {
