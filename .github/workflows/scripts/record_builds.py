@@ -152,8 +152,10 @@ def writeJSData(workflow, data):
     # that allows non-module JavaScript auto-import, without exporting JS variables
     # and without getting blocked by browser's CORS policy.
 
+    normalized_workflow = workflow.replace("-", "_")
     workflow_file_name = workflow + "_status_data.py"
-    workflow_javascript_var_assignment = workflow + "_build_states = "
+    # JS variable names cannot use hyphens, so use normalized workflow here.
+    workflow_javascript_var_assignment = normalized_workflow + "_build_states = "
     try:
         # Add JavaScript variable assignment.
         with open(workflow_file_name, "w") as file:
