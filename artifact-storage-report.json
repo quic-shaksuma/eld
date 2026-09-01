@@ -1,8 +1,8 @@
 {
   "summary": {
-    "artifactCount": 21,
-    "activeArtifacts": 21,
-    "totalSize": "4.82 GB"
+    "artifactCount": 14,
+    "activeArtifacts": 14,
+    "totalSize": "2.31 GB"
   },
   "workflows": [
     {
@@ -37,47 +37,6 @@
           "size": "459.67 MB",
           "createdAt": "2026-06-10T21:55:59Z",
           "expiresAt": "2026-09-08T19:48:02Z"
-        },
-        {
-          "name": "install-aarch64-toolchain.tar.xz",
-          "size": "490.32 MB",
-          "createdAt": "2026-06-03T13:46:29Z",
-          "expiresAt": "2026-09-01T11:20:06Z"
-        },
-        {
-          "name": "install-riscv32-toolchain.tar.xz",
-          "size": "479.99 MB",
-          "createdAt": "2026-06-03T13:43:58Z",
-          "expiresAt": "2026-09-01T11:20:06Z"
-        },
-        {
-          "name": "install-arm-toolchain.tar.xz",
-          "size": "459.79 MB",
-          "createdAt": "2026-06-03T13:34:39Z",
-          "expiresAt": "2026-09-01T11:20:06Z"
-        },
-        {
-          "name": "install-hexagon-toolchain.tar.xz",
-          "size": "453.01 MB",
-          "createdAt": "2026-06-03T13:34:19Z",
-          "expiresAt": "2026-09-01T11:20:06Z"
-        },
-        {
-          "name": "install-riscv64-toolchain.tar.xz",
-          "size": "479.97 MB",
-          "createdAt": "2026-06-03T13:33:02Z",
-          "expiresAt": "2026-09-01T11:20:06Z"
-        }
-      ]
-    },
-    {
-      "name": "Nightly check",
-      "artifacts": [
-        {
-          "name": "install-nightly-toolchain.tar.xz",
-          "size": "201.05 MB",
-          "createdAt": "2026-06-03T12:47:58Z",
-          "expiresAt": "2026-09-01T11:13:10Z"
         }
       ]
     },
@@ -137,12 +96,6 @@
           "size": "600.00 B",
           "createdAt": "2026-06-03T20:03:01Z",
           "expiresAt": "2026-09-01T20:02:51Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "601.00 B",
-          "createdAt": "2026-06-02T17:57:15Z",
-          "expiresAt": "2026-08-31T17:57:02Z"
         }
       ]
     }
