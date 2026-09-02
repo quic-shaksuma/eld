@@ -1,7 +1,7 @@
 {
   "summary": {
-    "artifactCount": 14,
-    "activeArtifacts": 14,
+    "artifactCount": 11,
+    "activeArtifacts": 11,
     "totalSize": "2.31 GB"
   },
   "workflows": [
@@ -78,24 +78,6 @@
           "size": "602.00 B",
           "createdAt": "2026-06-10T18:59:11Z",
           "expiresAt": "2026-09-08T18:59:00Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "601.00 B",
-          "createdAt": "2026-06-03T21:53:57Z",
-          "expiresAt": "2026-09-01T21:53:47Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "602.00 B",
-          "createdAt": "2026-06-03T20:48:20Z",
-          "expiresAt": "2026-09-01T20:48:06Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "600.00 B",
-          "createdAt": "2026-06-03T20:03:01Z",
-          "expiresAt": "2026-09-01T20:02:51Z"
         }
       ]
     }
