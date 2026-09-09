@@ -1,45 +1,10 @@
 {
   "summary": {
-    "artifactCount": 11,
-    "activeArtifacts": 11,
-    "totalSize": "2.31 GB"
+    "artifactCount": 4,
+    "activeArtifacts": 4,
+    "totalSize": "2.35 KB"
   },
   "workflows": [
-    {
-      "name": "nightly picolibc builder",
-      "artifacts": [
-        {
-          "name": "install-riscv32-toolchain.tar.xz",
-          "size": "482.50 MB",
-          "createdAt": "2026-06-10T22:12:30Z",
-          "expiresAt": "2026-09-08T19:48:02Z"
-        },
-        {
-          "name": "install-aarch64-toolchain.tar.xz",
-          "size": "492.84 MB",
-          "createdAt": "2026-06-10T22:12:09Z",
-          "expiresAt": "2026-09-08T19:48:02Z"
-        },
-        {
-          "name": "install-riscv64-toolchain.tar.xz",
-          "size": "481.21 MB",
-          "createdAt": "2026-06-10T22:01:18Z",
-          "expiresAt": "2026-09-08T19:48:02Z"
-        },
-        {
-          "name": "install-hexagon-toolchain.tar.xz",
-          "size": "452.61 MB",
-          "createdAt": "2026-06-10T21:58:22Z",
-          "expiresAt": "2026-09-08T19:48:02Z"
-        },
-        {
-          "name": "install-arm-toolchain.tar.xz",
-          "size": "459.67 MB",
-          "createdAt": "2026-06-10T21:55:59Z",
-          "expiresAt": "2026-09-08T19:48:02Z"
-        }
-      ]
-    },
     {
       "name": "Cpp Linter PR Check",
       "artifacts": [
@@ -66,18 +31,6 @@
           "size": "602.00 B",
           "createdAt": "2026-06-17T10:05:33Z",
           "expiresAt": "2026-09-15T10:05:12Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "601.00 B",
-          "createdAt": "2026-06-10T20:53:32Z",
-          "expiresAt": "2026-09-08T20:53:17Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "602.00 B",
-          "createdAt": "2026-06-10T18:59:11Z",
-          "expiresAt": "2026-09-08T18:59:00Z"
         }
       ]
     }
