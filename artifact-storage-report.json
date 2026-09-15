@@ -1,8 +1,8 @@
 {
   "summary": {
-    "artifactCount": 4,
-    "activeArtifacts": 4,
-    "totalSize": "2.35 KB"
+    "artifactCount": 3,
+    "activeArtifacts": 3,
+    "totalSize": "1.76 KB"
   },
   "workflows": [
     {
@@ -25,12 +25,6 @@
           "size": "602.00 B",
           "createdAt": "2026-06-17T20:39:18Z",
           "expiresAt": "2026-09-15T20:39:03Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "602.00 B",
-          "createdAt": "2026-06-17T10:05:33Z",
-          "expiresAt": "2026-09-15T10:05:12Z"
         }
       ]
     }
