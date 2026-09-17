@@ -1,26 +1,8 @@
 {
   "summary": {
-    "artifactCount": 2,
-    "activeArtifacts": 2,
-    "totalSize": "1.17 KB"
+    "artifactCount": 0,
+    "activeArtifacts": 0,
+    "totalSize": "0.00 B"
   },
-  "workflows": [
-    {
-      "name": "Cpp Linter PR Check",
-      "artifacts": [
-        {
-          "name": "cpp-linter-report",
-          "size": "601.00 B",
-          "createdAt": "2026-06-18T21:49:02Z",
-          "expiresAt": "2026-09-16T21:48:52Z"
-        },
-        {
-          "name": "cpp-linter-report",
-          "size": "601.00 B",
-          "createdAt": "2026-06-18T20:08:32Z",
-          "expiresAt": "2026-09-16T20:08:19Z"
-        }
-      ]
-    }
-  ]
+  "workflows": []
 }
