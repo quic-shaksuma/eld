@@ -4470,3 +4470,4 @@ Wed Sep 30 11:30:45 UTC 2026 -> Add data lock for busybox riscv32-gnu build stat
 Wed Sep 30 12:23:57 UTC 2026 -> Add data lock for linux-kernel riscv64 build status data to be written
 Wed Sep 30 12:24:18 UTC 2026 -> Add data lock for linux-kernel riscv32 build status data to be written
 Wed Sep 30 12:24:36 UTC 2026 -> Add linux-kernel arm build status data in DB
+Wed Sep 30 12:24:54 UTC 2026 -> Add linux-kernel aarch64 build status data in DB
