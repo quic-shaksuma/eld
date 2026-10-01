@@ -19,6 +19,7 @@ permissions:
   contents: write
 jobs:
   build-and-test:
+    if: github.repository == 'qualcomm/eld'
     name: ${{ matrix.arch.name }}
     runs-on: ubuntu-latest
     strategy:
