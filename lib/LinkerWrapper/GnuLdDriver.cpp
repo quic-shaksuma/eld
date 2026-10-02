@@ -1162,15 +1162,22 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
     Config.options().setShowProgressBar();
 
   std::optional<std::string> reproduceFileName;
+  auto getDefaultReproduceFileName = [&]() -> std::string {
+    std::string OutputFileName = Config.options().outputFileName();
+    // A null device is not a regular output path in which a sibling tarball
+    // can be created. Use a portable name in the current directory.
+    if (eld::utility::isNullDevice(OutputFileName))
+      return std::string("reproduce.tar");
+    return OutputFileName + ".tar";
+  };
   // --reproduce <tarfilename>|default
   // When the special value "default" is given, the tar filename defaults to
   // <output>.tar (where <output> is the -o filename, or "a.out" if not set).
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce)) {
     Config.options().setRecordInputfiles();
     llvm::StringRef val = arg->getValue();
-    reproduceFileName = (val == "default")
-                            ? Config.options().outputFileName() + ".tar"
-                            : val.str();
+    reproduceFileName =
+        (val == "default") ? getDefaultReproduceFileName() : val.str();
   }
 
   // --reproduce-compressed
@@ -1185,9 +1192,8 @@ bool GnuLdDriver::processOptions(llvm::opt::InputArgList &Args) {
   if (llvm::opt::Arg *arg = Args.getLastArg(T::reproduce_on_fail)) {
     Config.options().setReproduceOnFail(true);
     llvm::StringRef val = arg->getValue();
-    reproduceFileName = (val == "default")
-                            ? Config.options().outputFileName() + ".tar"
-                            : val.str();
+    reproduceFileName =
+        (val == "default") ? getDefaultReproduceFileName() : val.str();
   }
 
   if (reproduceFileName)
