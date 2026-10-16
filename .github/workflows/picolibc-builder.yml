@@ -20,7 +20,6 @@ permissions:
   contents: write
 jobs:
   build-and-test:
-    if: github.repository == 'qualcomm/eld'
     name: ${{ matrix.arch.name }}
     runs-on: ubuntu-latest
     strategy:
@@ -99,7 +98,6 @@ jobs:
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/ConfigureBuildWorkflowENV
 
       - name: Record pre-build entry
-        if: github.event_name == 'workflow_run'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
@@ -290,7 +288,6 @@ jobs:
           artifact-names: test-results-${{ matrix.arch.name }}
 
       - name: Update build entry
-        if: github.event_name == 'workflow_run'
         uses: ./llvm-project/llvm/tools/eld/.github/workflows/BuildStatusDataRecorder
         with:
           enabled: true
