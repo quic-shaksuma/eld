@@ -5064,3 +5064,4 @@ Fri Oct 16 20:37:33 UTC 2026 -> Add data lock for picolibc riscv32 build status 
 Fri Oct 16 20:37:35 UTC 2026 -> Add picolibc riscv32 build status data in DB
 Fri Oct 16 20:37:49 UTC 2026 -> Add data lock for picolibc aarch64 build status data to be written
 Fri Oct 16 20:37:50 UTC 2026 -> Add picolibc aarch64 build status data in DB
+Fri Oct 16 20:38:07 UTC 2026 -> Add picolibc arm build status data in DB
